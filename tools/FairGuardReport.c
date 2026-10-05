@@ -606,6 +606,243 @@ static void BuildReport(const char* logPath, const char* outPath)
     fclose(f);
 }
 
+/* ==================================================================
+ * 比对模式：交叉核对两台机器的日志
+ * ==================================================================
+ *
+ * 为什么需要：文档里反复说"单人日志无法自证，要成为有效证据需要**多方交叉核对**"，
+ * 但一直只有说法、没有工具。这一节补上。
+ *
+ * 原理：lockstep 下**每个客户端都会收到所有玩家的命令**。所以两台机器
+ * （尤其是"没有操作的那台"）应当对同一个对手的同一批操作给出相似的统计。
+ *
+ * ⚠️ 但它们**不应该**逐条完全相同：
+ *   · `Execute_DoList` 在联机时大约只有一半的帧被调用（实测），
+ *     两台机器的调用时机不同 → 各自都会漏掉一些帧
+ *   · 帧去重（同一帧只统计一次）也会让采样点不一致
+ * 所以本工具报告的是「**重合度**」与「**一致率**」，而不是"必须相同"。
+ *
+ * 真正值得追查的是：**两边都看到的那部分，数值对不对得上**。
+ */
+
+typedef struct {
+    unsigned frame;
+    int      house;
+    int      units, veh, mm;
+    int      matched;    /* 在另一份日志里找到了同 (房号, 帧号) 的记录 */
+    int      same;       /* 配上了，且 units/veh/MM 完全相同 */
+} CmpRec;
+
+#define MAX_CMP 20000
+static CmpRec g_CmpA[MAX_CMP]; static int g_CmpAn = 0;
+static CmpRec g_CmpB[MAX_CMP]; static int g_CmpBn = 0;
+
+static int CmpLess(const void* x, const void* y)
+{
+    const CmpRec* a = (const CmpRec*)x;
+    const CmpRec* b = (const CmpRec*)y;
+    if (a->frame != b->frame) return (a->frame < b->frame) ? -1 : 1;
+    if (a->house != b->house) return (a->house < b->house) ? -1 : 1;
+    return 0;
+}
+
+/* 只抓比对需要的字段（不碰哈希链 —— 两台机器的链本来就各自独立） */
+static int ParseForCompare(const char* path, CmpRec* out, int* n)
+{
+    FILE* f = fopen(path, "rb");
+    char  line[MAX_LINE];
+
+    *n = 0;
+    if (!f) return 0;
+
+    while (fgets(line, sizeof(line), f))
+    {
+        int f_, house_, mm, un, ve;
+
+        if (!strstr(line, "*** DETECT "))  continue;
+        if (*n >= MAX_CMP)                 continue;
+        if (!FindInt(line, "f=", &f_))     continue;
+        if (!FindInt(line, "h=", &house_)) continue;
+        if (!FindInt(line, "MM=", &mm))    continue;
+        if (!FindInt(line, "units=", &un)) continue;
+        if (!FindInt(line, "veh=", &ve))   continue;
+
+        out[*n].frame   = (unsigned)f_;
+        out[*n].house   = house_;
+        out[*n].units   = un;
+        out[*n].veh     = ve;
+        out[*n].mm      = mm;
+        out[*n].matched = 0;
+        out[*n].same    = 0;
+        (*n)++;
+    }
+    fclose(f);
+    return 1;
+}
+
+static void BuildCompareReport(const char* pa, const char* pb, const char* outPath)
+{
+    FILE* f;
+    int   i, j, nA = g_CmpAn, nB = g_CmpBn;
+    int   matched = 0, same = 0, diff = 0, onlyA = 0, onlyB = 0;
+    const char* ba = strrchr(pa, '\\'); ba = ba ? ba + 1 : pa;
+    const char* bb = strrchr(pb, '\\'); bb = bb ? bb + 1 : pb;
+
+    /* 按 (帧号, 房号) 排序后归并配对 */
+    qsort(g_CmpA, (size_t)nA, sizeof(CmpRec), CmpLess);
+    qsort(g_CmpB, (size_t)nB, sizeof(CmpRec), CmpLess);
+
+    i = j = 0;
+    while (i < nA && j < nB)
+    {
+        int c = CmpLess(&g_CmpA[i], &g_CmpB[j]);
+        if (c == 0)
+        {
+            int isSame = (g_CmpA[i].units == g_CmpB[j].units &&
+                          g_CmpA[i].veh   == g_CmpB[j].veh   &&
+                          g_CmpA[i].mm    == g_CmpB[j].mm);
+            g_CmpA[i].matched = g_CmpB[j].matched = 1;
+            g_CmpA[i].same    = g_CmpB[j].same    = isSame;
+            matched++;
+            if (isSame) same++; else diff++;
+            i++; j++;
+        }
+        else if (c < 0) { onlyA++; i++; }
+        else            { onlyB++; j++; }
+    }
+    while (i < nA) { onlyA++; i++; }
+    while (j < nB) { onlyB++; j++; }
+
+    f = fopen(outPath, "wb");
+    if (!f) return;
+
+    fprintf(f,
+"<!DOCTYPE html>\n<html lang=\"zh-CN\"><head><meta charset=\"utf-8\">\n"
+"<title>FairGuard 双机交叉核对</title>\n"
+"<style>\n"
+" body{font-family:'Microsoft YaHei',Segoe UI,sans-serif;max-width:1000px;margin:24px auto;padding:0 16px;color:#222;line-height:1.7}\n"
+" h1{font-size:22px;border-bottom:2px solid #444;padding-bottom:8px}\n"
+" h2{font-size:17px;margin-top:28px;border-left:4px solid #666;padding-left:8px}\n"
+" .card{padding:14px 18px;border-radius:8px;margin:14px 0}\n"
+" .ok{background:#e8f6ec;border:1px solid #7cc48f}\n"
+" .bad{background:#fdecea;border:1px solid #e59a92}\n"
+" .info{background:#eef3fb;border:1px solid #9ab4d8}\n"
+" .warn{background:#fff8e1;border:1px solid #e0c56a}\n"
+" table{border-collapse:collapse;width:100%%;font-size:13px}\n"
+" th,td{border:1px solid #ccc;padding:5px 8px;text-align:left}\n"
+" th{background:#f0f0f0}\n"
+" tr:nth-child(even) td{background:#fafafa}\n"
+" .num{text-align:right;font-family:Consolas,monospace}\n"
+" .mono{font-family:Consolas,monospace;font-size:12px;word-break:break-all}\n"
+" .muted{color:#666;font-size:13px}\n"
+" .hit{color:#b00;font-weight:bold}\n"
+"</style></head><body>\n");
+
+    fprintf(f, "<h1>双机交叉核对</h1>\n");
+    fprintf(f, "<p class=\"muted\">A：<b>%s</b>（%d 条命中）<br>B：<b>%s</b>（%d 条命中）</p>\n",
+            ba, nA, bb, nB);
+
+    if (nA == 0 && nB == 0)
+        fprintf(f, "<div class=\"card info\"><b>两份日志都没有命中记录</b> —— 没什么可比的。<br>"
+                   "如果这不符合预期，先单独看任意一份的报告（确认检测器在工作、对局是联机的）。</div>\n");
+    else if (matched == 0)
+        fprintf(f, "<div class=\"card bad\"><b>两份日志没有一条能对上（同帧号 + 同房号）。</b><br>"
+                   "常见原因：<ul>"
+                   "<li>两份日志<b>不是同一局</b>（每局开始时帧号会重置，先确认时间）</li>"
+                   "<li>其中一份根本没记录到对方（那台没装插件、或探针没取到数据）</li>"
+                   "</ul>这种情况<b>不能</b>说明谁在作弊 —— 先确认是不是同一局。</div>\n");
+    else
+    {
+        int pct = (matched > 0) ? (same * 100 / matched) : 0;
+        if (diff == 0)
+            fprintf(f, "<div class=\"card ok\"><b>交叉核对通过。</b><br>"
+                       "两份日志有 <b>%d</b> 条能对上（同帧号 + 同房号），"
+                       "其中 <b>%d 条数值完全一致（100%%）</b>。<br>"
+                       "<span class=\"muted\">两台机器对同一批操作的统计完全吻合 —— "
+                       "这正是「多方交叉核对」想要的形态。</span></div>\n", matched, same);
+        else if (pct >= 80)
+            fprintf(f, "<div class=\"card ok\"><b>交叉核对基本通过（一致率 %d%%）。</b><br>"
+                       "能对上 %d 条，其中 %d 条数值一致、<b>%d 条对不上</b>。<br>"
+                       "<span class=\"muted\">少数不一致通常是采样时机差异造成的，见下方明细。</span></div>\n",
+                    pct, matched, same, diff);
+        else
+            fprintf(f, "<div class=\"card bad\"><b>⚠️ 一致率偏低（%d%%）。</b><br>"
+                       "能对上 %d 条，但只有 %d 条数值一致、<b>%d 条对不上</b>。<br>"
+                       "这<b>不一定</b>是造假 —— 可能是："
+                       "<ul><li>两台机器的 MOD / 游戏版本不同（命令内容会有差异）</li>"
+                       "<li>其中一份日志被截断或手工编辑过</li>"
+                       "<li>采样时机差异极大</li></ul>"
+                       "请把两份日志都留着，结合录像一起看。</div>\n", pct, matched, same, diff);
+    }
+
+    fprintf(f, "<h2>统计</h2>\n<table>\n"
+               "<tr><th>项目</th><th>数量</th><th>说明</th></tr>\n");
+    fprintf(f, "<tr><td>A 命中总数</td><td class=\"num\">%d</td><td class=\"muted\">%s</td></tr>\n", nA, ba);
+    fprintf(f, "<tr><td>B 命中总数</td><td class=\"num\">%d</td><td class=\"muted\">%s</td></tr>\n", nB, bb);
+    fprintf(f, "<tr><td><b>配对成功</b></td><td class=\"num\"><b>%d</b></td><td class=\"muted\">同帧号 + 同房号</td></tr>\n", matched);
+    fprintf(f, "<tr><td>　其中数值一致</td><td class=\"num\">%d</td><td class=\"muted\">units / veh / MM 全同</td></tr>\n", same);
+    if (diff) fprintf(f, "<tr><td>　其中数值不一致</td><td class=\"num hit\">%d</td><td class=\"muted\">见下方明细</td></tr>\n", diff);
+    fprintf(f, "<tr><td>只有 A 有</td><td class=\"num\">%d</td><td class=\"muted\">多半是 B 漏采样了那几帧</td></tr>\n", onlyA);
+    fprintf(f, "<tr><td>只有 B 有</td><td class=\"num\">%d</td><td class=\"muted\">多半是 A 漏采样了那几帧</td></tr>\n", onlyB);
+    fprintf(f, "</table>\n");
+
+    if (diff > 0)
+    {
+        int shown = 0;
+        fprintf(f, "<h2>数值不一致的明细</h2>\n"
+                   "<table><tr><th>帧</th><th>房号</th><th>A units</th><th>B units</th>"
+                   "<th>A veh</th><th>B veh</th><th>A MM</th><th>B MM</th></tr>\n");
+        for (i = 0; i < nA && shown < 100; i++)
+        {
+            if (!g_CmpA[i].matched || g_CmpA[i].same) continue;
+            for (j = 0; j < nB; j++)
+            {
+                if (g_CmpB[j].frame == g_CmpA[i].frame && g_CmpB[j].house == g_CmpA[i].house)
+                {
+                    fprintf(f, "<tr><td class=\"num\">%u</td><td class=\"num\">%d</td>"
+                               "<td class=\"num\">%d</td><td class=\"num hit\">%d</td>"
+                               "<td class=\"num\">%d</td><td class=\"num hit\">%d</td>"
+                               "<td class=\"num\">%d</td><td class=\"num hit\">%d</td></tr>\n",
+                            g_CmpA[i].frame, g_CmpA[i].house,
+                            g_CmpA[i].units, g_CmpB[j].units,
+                            g_CmpA[i].veh,   g_CmpB[j].veh,
+                            g_CmpA[i].mm,    g_CmpB[j].mm);
+                    shown++;
+                    break;
+                }
+            }
+        }
+        fprintf(f, "</table>\n");
+        if (diff > shown) fprintf(f, "<p class=\"muted\">（只列了前 %d 条）</p>\n", shown);
+    }
+
+    fprintf(f,
+"<h2>怎么读这份报告</h2>\n"
+"<div class=\"card info\">\n"
+"<p><b>为什么两份日志不会完全一样：</b>引擎的 <span class=\"mono\">Execute_DoList</span> "
+"在联机时大约只有<b>一半的帧</b>被调用（实测），两台机器的调用时机不同，"
+"各自都会漏掉一些帧 —— <b>只有 A 有 / 只有 B 有</b>属于正常现象。</p>\n"
+"<p><b>该关注的是「配对成功」里的「数值不一致」：</b>同一帧、同一房号，"
+"两台机器对同一批命令的统计应该一样。对不上才需要解释。</p>\n"
+"</div>\n"
+"<div class=\"card warn\">\n"
+"<p><b>⚠️ 交叉核对通过 ≠ 对方作弊。</b>它证明的是"
+"「两台机器对同一批操作看法一致」，说明这份记录<b>不是某一台机器上单独编出来的</b>。"
+"至于是不是插件发的命令，仍然要看判据与录像。</p>\n"
+"<p><b>⚠️ 一致率低也不一定是造假</b>：MOD / 游戏版本不同、日志被截断、"
+"采样时机差异大，都会导致对不上。别急着下结论。</p>\n"
+"</div>\n"
+"<div class=\"card bad\">\n"
+"<p>两份日志各自都应当先用单份模式校验哈希链（"
+"<span class=\"mono\">FairGuardReport.exe &lt;日志&gt;</span>）—— "
+"<b>链对不上的那份，比对结果没有意义</b>。</p>\n"
+"</div>\n");
+
+    fprintf(f, "<p class=\"muted\">由 FairGuardReport 生成　|　只读日志，不修改任何东西</p>\n");
+    fprintf(f, "</body></html>\n");
+    fclose(f);
+}
+
 /* ------------------------------------------------------------------
  * main
  * ------------------------------------------------------------------ */
@@ -614,18 +851,63 @@ int main(int argc, char** argv)
     char logPath[MAX_PATH] = "";
     char outPath[MAX_PATH] = "";
     char msg[1024];
+    char paths[2][MAX_PATH];
+    int  nPaths = 0;
     int  noOpen = 0;
     int  i;
 
     printf("FairGuardReport - 日志阅读器 + 哈希链校验\n\n");
 
-    /* 参数：日志路径 / --no-open（只生成报告、不打开浏览器）/ --selftest */
+    /* 参数：
+     *   一个日志路径  -> 单份报告（哈希链校验 + 可读报告）
+     *   两个日志路径  -> 双机交叉核对
+     *   --no-open     -> 只生成，不打开浏览器
+     *   --selftest    -> 自检 */
     for (i = 1; i < argc; i++)
     {
         if (strcmp(argv[i], "--selftest") == 0) return SelfTest();
         if (strcmp(argv[i], "--no-open") == 0) { noOpen = 1; continue; }
-        snprintf(logPath, sizeof(logPath), "%s", argv[i]);
+        if (nPaths < 2) snprintf(paths[nPaths++], MAX_PATH, "%s", argv[i]);
     }
+
+    /* ---------------- 双机交叉核对模式 ---------------- */
+    if (nPaths == 2)
+    {
+        printf("模式：双机交叉核对\n\n");
+
+        if (!ParseForCompare(paths[0], g_CmpA, &g_CmpAn))
+        {
+            snprintf(msg, sizeof(msg) - 1, "打不开日志文件：\n%s", paths[0]);
+            printf("%s\n", msg);
+            MessageBoxA(NULL, msg, "FairGuardReport", MB_ICONERROR | MB_OK);
+            return 1;
+        }
+        if (!ParseForCompare(paths[1], g_CmpB, &g_CmpBn))
+        {
+            snprintf(msg, sizeof(msg) - 1, "打不开日志文件：\n%s", paths[1]);
+            printf("%s\n", msg);
+            MessageBoxA(NULL, msg, "FairGuardReport", MB_ICONERROR | MB_OK);
+            return 1;
+        }
+        printf("  A：%d 条命中记录\n", g_CmpAn);
+        printf("  B：%d 条命中记录\n", g_CmpBn);
+
+        snprintf(outPath, sizeof(outPath) - 1, "%s.vs.html", paths[0]);
+        outPath[sizeof(outPath) - 1] = 0;
+        BuildCompareReport(paths[0], paths[1], outPath);
+        printf("比对报告：%s\n", outPath);
+
+        if (GetFileAttributesA(outPath) != INVALID_FILE_ATTRIBUTES)
+        {
+            if (!noOpen) ShellExecuteA(NULL, "open", outPath, NULL, NULL, SW_SHOWNORMAL);
+            return 0;
+        }
+        snprintf(msg, sizeof(msg) - 1, "报告写不出来（目录只读？）：\n%s", outPath);
+        MessageBoxA(NULL, msg, "FairGuardReport", MB_ICONERROR | MB_OK);
+        return 1;
+    }
+
+    if (nPaths == 1) snprintf(logPath, sizeof(logPath), "%s", paths[0]);
 
     if (!logPath[0] && !FindLatestLog(logPath, sizeof(logPath)))
     {
