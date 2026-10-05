@@ -476,9 +476,12 @@ static void LoadConfig(void)
     if (g_DetCfg.SummaryEvery < 0)      g_DetCfg.SummaryEvery = 0;
 
     /* 屏幕提示节流：配置里写"秒"，内部换算成帧（实测约 60 帧/秒）。
-     * 0 = 不节流（每次命中都弹）。 */
+     * **默认 0 = 不节流**（每次命中都如实弹）。
+     * 起因见 FairGuard.ini 里这一项的注释：曾经因为一次"刷屏"默认开了 10 秒，
+     * 后来确认那次是**故意的测试操作**，正常游玩不太会出现密集命中 ——
+     * 那就没有理由默认限制提示。 */
     {
-        int sec = GetPrivateProfileIntA("Detector", "AlertThrottleSeconds", 10, ini);
+        int sec = GetPrivateProfileIntA("Detector", "AlertThrottleSeconds", 0, ini);
         if (sec < 0)   sec = 0;
         if (sec > 600) sec = 600;
         g_DetCfg.AlertThrottleFrames = sec * 60;
@@ -786,12 +789,16 @@ static PendingAlert g_Alert;
 /*
  * 屏幕提示的节流表：每个房号上一次"真的弹了提示"的帧号。
  *
- * 为什么需要（实测数据）：用户那一局里 f=14806~15316 连续命中 40 多次
- * （运输车装卸循环，8 秒内），`g_Alert` 每帧被覆盖一次 ——
- * 屏幕上的提示就会一直刷新、停不下来，看着像是坏了。
+ * ⚠️ **默认是不启用的**（`AlertThrottleSeconds=0`）。留着它只是因为
+ * "万一有人真的遇到密集命中"时有得调，不是因为它有必要。
  *
- * 现在同一房号在 AlertThrottleSeconds 之内只弹一次；**日志照常逐条全记**，
- * 所以不会丢证据，只是不刷屏。
+ * 来龙去脉（别被注释误导）：1.3 开发时看到日志里 f=14806~15316 连续命中
+ * 40 多次（8 秒内），`g_Alert` 每帧被覆盖 -> 屏幕提示一直刷新、看着像坏了，
+ * 于是加了这个节流并默认开 10 秒。
+ * **后来用户说明：那次刷屏是他故意做的测试操作，正常游玩不太可能出现。**
+ * 既然正常对局不会刷屏，就没有理由默认限制提示 —— 于是默认值改成 0。
+ *
+ * 无论开关，**日志都照常逐条记录**，不影响证据。
  */
 static unsigned g_LastAlertFrame[MAX_HOUSES];
 
@@ -1061,10 +1068,9 @@ static void OnDetectHit(unsigned frame, int house, const DetStat* s)
 
     /* 登记屏幕提示（真正的显示在帧钩子里做，理由见 PendingAlert 的注释）。
      *
-     * ★ 1.3 起加了节流：同一房号在 AlertThrottleFrames 之内只登记一次。
-     *   实测里"装卸循环"会在 8 秒内连续命中 40 多次，不节流的话
-     *   屏幕提示会一直刷新、看着像坏了。
-     *   **日志不受影响** —— 上面那几行照常逐条记，证据不丢。 */
+     * 节流**默认是关的**（原因见 g_LastAlertFrame 的注释）。
+     * 开着的时候，同一房号在 AlertThrottleFrames 之内只登记一次。
+     * 无论开关，**日志都不受影响** —— 上面那几行照常逐条记，证据不丢。 */
     if (g_DetCfg.ShowAlert)
     {
         int throttled = 0;
