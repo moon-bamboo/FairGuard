@@ -1,0 +1,103 @@
+﻿================================================================
+ FairGuard 1.2 修正依据 —— 用户实机测试的真实日志（原始数据，勿改）
+================================================================
+
+来源 : E:\RA2\Mental Omega\MsgLog\EventProbe_2026-10-05_20-17-34.log
+       （2,117,352 字节 / 32,173 行；测试时间 2026-10-05 20:17-20:26）
+插件 : EventProbe 1.1（FairGuard 的前身：探针 + 检测器）
+配置 : MinEvents=5  MinDest=5  RatioPercent=50  （1.1 还没有 MissionFilter）
+
+---- 一、结论：1.2 的两处修正都出自这份日志 ----
+
+[1] 误报 —— 全部来自 Mission != Enter 的命令
+    下面第三条列出的命中里，凡是带 units=/veh= 的行，**无一例外 Enter=0**。
+    用户当时的操作："选中 20 个单位，进入路径点模式，移动到某个点"。
+    原因：Move 的目标是【格子】，路径点模式下引擎会给每个单位展开各自的
+          目标格，Destination 于是天然分散（20 个单位给出 10~14 个不同值），
+          与手速无关，纯粹是引擎的规划方式。
+    => 1.2 修正：MissionFilter 默认 7（只判 Enter）。
+
+[2] 漏报 —— "20 个单位 + 3 辆 6 容量载具自动装车"没有被报出来
+    下面第四条列出的 Enter 批次证明这类命令确实发生了（最多一帧 20 条 Enter）。
+    没报的原因：veh 只有 3，被 MinDest=5 和 RatioPercent=50（3/20=15%）双重挡掉。
+    => 1.2 修正：MinDest 5->3、RatioPercent 50->0，并且默认只判 Enter。
+    !! 待实测确认：如果 AutoLoad 是【分帧】下发的（f=19815~19861 那连续 7 帧、
+       每帧 12 条 Enter 看起来就是），那么每一帧的 veh 可能只有 1~2；
+       而"手动框选 12 个单位点一辆车"同样是每帧 12 条 Enter、veh=1 ——
+       两者在数据上无法区分。所以 1.2 新增了 TraceAll 诊断行，
+       需要再测一轮（打开 TraceAll）才能定论。
+
+---- 二、启动头 ----
+[10-05 20:17:34] EventProbe 1.1 start
+[10-05 20:17:34] config: Enable=1 DumpRaw=0 DumpBytes=32 BurstOps=5 LogEveryFrame=0
+[10-05 20:17:34] detector: Enable=1 MinEvents=5 MinDest=5 RatioPercent=50 ShowAlert=1 AlertSeconds=10 WindowFrames=600 WindowHits=2 HashChain=1 SummaryEvery=1800
+[10-05 20:17:34] addr: DoList=<008B41F8> OutList=<00A802C8> CurrentFrame=<00A8ED84> AddMessage=<005D3BA0>
+[10-05 20:17:34] read-only probe: does not modify any game state
+[10-05 20:17:34] hash-chain: sha256, initial=0000000000000000000000000000000000000000000000000000000000000000 (each DETECT line carries chain=; tampering breaks the chain)
+[10-05 20:17:34] --------------------------------------------------
+[10-05 20:17:34] hook: frame alive (0x55D360), CurrentFrame=0
+[10-05 20:17:34] list: f=0 in=0/0 out=0/0 calls=0 maxOps=0
+
+---- 三、全部 DETECT 相关行（43 条）----
+[10-05 20:19:56] *** DETECT f=8595 h=0 units=7 veh=5 MM=7 (Move=7 Enter=0 Other=0) ratio=71% OVERFLOW=2 chain=583F36FA536AFEED
+[10-05 20:20:02] [DETECT] alive f=9000 hits=1 scans=28 frames=9001 firstHit=8595 lastHit=8595 byHouse=h0:1 chain=583F36FA536AFEED recs=1
+[10-05 20:20:12] *** DETECT f=9564 h=0 units=15 veh=8 MM=15 (Move=15 Enter=0 Other=0) ratio=53% OVERFLOW=7 chain=5363FB48E2D61CF4
+[10-05 20:20:24] *** DETECT f=10321 h=0 units=20 veh=10 MM=20 (Move=20 Enter=0 Other=0) ratio=50% OVERFLOW=10 chain=1F72DBA5E9568453
+[10-05 20:20:32] [DETECT] alive f=10800 hits=3 scans=207 frames=10801 firstHit=8595 lastHit=10321 byHouse=h0:3 chain=1F72DBA5E9568453 recs=3
+[10-05 20:20:51] *** DETECT f=11985 h=0 units=20 veh=12 MM=20 (Move=20 Enter=0 Other=0) ratio=60% OVERFLOW=8 chain=444A4E94E1A7AF44
+[10-05 20:21:02] [DETECT] alive f=12600 hits=4 scans=543 frames=12601 firstHit=8595 lastHit=11985 byHouse=h0:4 chain=444A4E94E1A7AF44 recs=4
+[10-05 20:21:14] *** DETECT f=13355 h=0 units=19 veh=14 MM=19 (Move=19 Enter=0 Other=0) ratio=73% OVERFLOW=5 chain=2C1DC056209C1754
+[10-05 20:21:21] *** DETECT f=13823 h=0 units=20 veh=14 MM=20 (Move=0 Enter=0 Other=20) ratio=70% OVERFLOW=6 [repeated] chain=A7AE32738D05AA1C
+[10-05 20:21:21] *** DETECT-REPEAT f=13823 h=0 hitsInWindow=2/600 frames, totalHits=6
+[10-05 20:21:31] [DETECT] alive f=14400 hits=6 scans=622 frames=14401 firstHit=8595 lastHit=13823 byHouse=h0:6 chain=A7AE32738D05AA1C recs=6
+[10-05 20:21:34] *** DETECT f=14593 h=0 units=20 veh=13 MM=20 (Move=20 Enter=0 Other=0) ratio=65% OVERFLOW=7 chain=D016B072E6AE95F6
+[10-05 20:22:00] [DETECT] alive f=16200 hits=7 scans=648 frames=16201 firstHit=8595 lastHit=14593 byHouse=h0:7 chain=D016B072E6AE95F6 recs=7
+[10-05 20:22:13] *** DETECT f=16943 h=0 units=20 veh=10 MM=20 (Move=20 Enter=0 Other=0) ratio=50% OVERFLOW=10 chain=F343635E4EA815D0
+[10-05 20:22:20] *** DETECT f=17370 h=0 units=20 veh=10 MM=20 (Move=20 Enter=0 Other=0) ratio=50% OVERFLOW=10 [repeated] chain=E46704F247888636
+[10-05 20:22:20] *** DETECT-REPEAT f=17370 h=0 hitsInWindow=2/600 frames, totalHits=9
+[10-05 20:22:30] *** DETECT f=17976 h=0 units=20 veh=11 MM=20 (Move=20 Enter=0 Other=0) ratio=55% OVERFLOW=9 chain=7867653F773600C2
+[10-05 20:22:30] [DETECT] alive f=18000 hits=10 scans=677 frames=18001 firstHit=8595 lastHit=17976 byHouse=h0:10 chain=7867653F773600C2 recs=10
+[10-05 20:22:34] *** DETECT f=18207 h=0 units=20 veh=10 MM=20 (Move=20 Enter=0 Other=0) ratio=50% OVERFLOW=10 [repeated] chain=9895B84457AA31CD
+[10-05 20:22:34] *** DETECT-REPEAT f=18207 h=0 hitsInWindow=2/600 frames, totalHits=11
+[10-05 20:22:35] *** DETECT f=18323 h=0 units=20 veh=13 MM=20 (Move=20 Enter=0 Other=0) ratio=65% OVERFLOW=7 [repeated] chain=A733CFB9E2B567FE
+[10-05 20:22:35] *** DETECT-REPEAT f=18323 h=0 hitsInWindow=3/600 frames, totalHits=12
+[10-05 20:22:38] *** DETECT f=18456 h=0 units=20 veh=12 MM=20 (Move=20 Enter=0 Other=0) ratio=60% OVERFLOW=8 [repeated] chain=74C92C972F58DC98
+[10-05 20:22:38] *** DETECT-REPEAT f=18456 h=0 hitsInWindow=4/600 frames, totalHits=13
+[10-05 20:22:40] *** DETECT f=18578 h=0 units=20 veh=12 MM=20 (Move=20 Enter=0 Other=0) ratio=60% OVERFLOW=8 chain=1FE17734F6A0E758
+[10-05 20:22:42] *** DETECT f=18702 h=0 units=20 veh=12 MM=20 (Move=20 Enter=0 Other=0) ratio=60% OVERFLOW=8 [repeated] chain=AD59DBA48BB150BD
+[10-05 20:22:42] *** DETECT-REPEAT f=18702 h=0 hitsInWindow=2/600 frames, totalHits=15
+[10-05 20:22:44] *** DETECT f=18841 h=0 units=20 veh=11 MM=20 (Move=20 Enter=0 Other=0) ratio=55% OVERFLOW=9 [repeated] chain=66F97FAFF8432A62
+[10-05 20:22:44] *** DETECT-REPEAT f=18841 h=0 hitsInWindow=3/600 frames, totalHits=16
+[10-05 20:22:47] *** DETECT f=19016 h=0 units=20 veh=11 MM=20 (Move=20 Enter=0 Other=0) ratio=55% OVERFLOW=9 [repeated] chain=44B8E3776B3589D9
+[10-05 20:22:47] *** DETECT-REPEAT f=19016 h=0 hitsInWindow=4/600 frames, totalHits=17
+[10-05 20:23:00] [DETECT] alive f=19800 hits=17 scans=714 frames=19801 firstHit=8595 lastHit=19016 byHouse=h0:17 chain=44B8E3776B3589D9 recs=17
+[10-05 20:24:02] *** DETECT f=23564 h=0 units=20 veh=11 MM=20 (Move=20 Enter=0 Other=0) ratio=55% OVERFLOW=9 chain=E2DD6ECE615B8561
+[10-05 20:24:22] *** DETECT f=24776 h=0 units=20 veh=11 MM=20 (Move=20 Enter=0 Other=0) ratio=55% OVERFLOW=9 chain=3B601768C6BC5166
+[10-05 20:24:29] [DETECT] alive f=25200 hits=19 scans=762 frames=25201 firstHit=8595 lastHit=24776 byHouse=h0:19 chain=3B601768C6BC5166 recs=19
+[10-05 20:25:01] *** DETECT f=27161 h=0 units=20 veh=10 MM=20 (Move=20 Enter=0 Other=0) ratio=50% OVERFLOW=10 chain=481F780120CBFBF5
+[10-05 20:25:24] *** DETECT f=28570 h=0 units=20 veh=10 MM=20 (Move=20 Enter=0 Other=0) ratio=50% OVERFLOW=10 chain=02386A43541D042F
+[10-05 20:25:25] *** DETECT f=28641 h=0 units=20 veh=10 MM=20 (Move=20 Enter=0 Other=0) ratio=50% OVERFLOW=10 [repeated] chain=DA4BB447C110AF71
+[10-05 20:25:25] *** DETECT-REPEAT f=28641 h=0 hitsInWindow=2/600 frames, totalHits=22
+[10-05 20:25:28] [DETECT] alive f=28800 hits=22 scans=774 frames=28801 firstHit=8595 lastHit=28641 byHouse=h0:22 chain=DA4BB447C110AF71 recs=22
+[10-05 20:25:49] *** DETECT f=30043 h=0 units=22 veh=12 MM=22 (Move=22 Enter=0 Other=0) ratio=54% OVERFLOW=10 chain=1515A91D53085FF3
+[10-05 20:25:58] [DETECT] alive f=30600 hits=23 scans=776 frames=30601 firstHit=8595 lastHit=30043 byHouse=h0:23 chain=1515A91D53085FF3 recs=23
+[10-05 20:26:12] [DETECT-SUMMARY] ver=1.1 f=31234 hits=23 scans=776 firstHit=8595 lastHit=30043 byHouse=h0:23 chain=1515A91D53085FF3E04CDD8CE6C1735392CAB9EC8DE70B2C47A8CA8CF547696D recs=23
+
+---- 四、全部 "Enter>0" 的 BURST 行（15 条）----
+（BURST 行里的 Mission=7(Enter): N 是 1.1 修正后才有的真实计数；
+  1.0 时代这一位恒为 -1，从日志里看不到 Enter 的信息。）
+[10-05 20:19:41] *** BURST f=7712 h=0 ops=5  (MegaMission=5, Mission=7(Enter): 5)
+[10-05 20:22:52] *** BURST f=19309 h=0 ops=20  (MegaMission=20, Mission=7(Enter): 20)
+[10-05 20:22:55] *** BURST f=19488 h=0 ops=20  (MegaMission=20, Mission=7(Enter): 20)
+[10-05 20:23:00] *** BURST f=19815 h=0 ops=12  (MegaMission=12, Mission=7(Enter): 12)
+[10-05 20:23:00] *** BURST f=19822 h=0 ops=12  (MegaMission=12, Mission=7(Enter): 12)
+[10-05 20:23:00] *** BURST f=19828 h=0 ops=12  (MegaMission=12, Mission=7(Enter): 12)
+[10-05 20:23:00] *** BURST f=19834 h=0 ops=12  (MegaMission=12, Mission=7(Enter): 12)
+[10-05 20:23:00] *** BURST f=19840 h=0 ops=12  (MegaMission=12, Mission=7(Enter): 12)
+[10-05 20:23:00] *** BURST f=19847 h=0 ops=12  (MegaMission=12, Mission=7(Enter): 12)
+[10-05 20:23:01] *** BURST f=19855 h=0 ops=12  (MegaMission=12, Mission=7(Enter): 12)
+[10-05 20:23:01] *** BURST f=19861 h=0 ops=12  (MegaMission=12, Mission=7(Enter): 12)
+[10-05 20:23:04] *** BURST f=20043 h=0 ops=9  (MegaMission=9, Mission=7(Enter): 8)
+[10-05 20:23:11] *** BURST f=20477 h=0 ops=20  (MegaMission=20, Mission=7(Enter): 20)
+[10-05 20:23:13] *** BURST f=20607 h=0 ops=18  (MegaMission=18, Mission=7(Enter): 18)
+[10-05 20:23:17] *** BURST f=20835 h=0 ops=16  (MegaMission=16, Mission=7(Enter): 16)

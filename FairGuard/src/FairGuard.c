@@ -56,7 +56,7 @@
 #include "detector_core.h"   /* 判据核心：纯算法，可单测 */
 #include "sha256.h"          /* 哈希链用的 SHA-256 */
 
-#define GUARD_VERSION   "1.2"
+#define GUARD_VERSION   "1.3"
 
 /* ==================================================================
  * 1. 地址常量
@@ -1102,7 +1102,13 @@ static void DetectCheckFrame(unsigned frame)
             ReportDetectTrace(frame, h, s, ratio);
     }
 
-    /* 定期汇总（只在对局有进展时输出，避免刷屏） */
+    /* 定期报活 + 汇总。
+     *
+     * ⚠️ 1.3 起改成「**无条件**定期输出」：以前只在"有新命中"时才写，
+     * 于是把探针关掉（正式使用的默认配置）之后，一局没命中的话日志里
+     * 除了启动头什么都没有 —— 用户根本没法判断"检测器到底在不在跑"。
+     * 现在每 SummaryEvery 帧固定一行，`scans=` 就是活性指标：
+     * 它在涨 = 引擎的事件队列有数据、检测器在正常工作。 */
     if (g_DetCfg.SummaryEvery > 0)
     {
         if (g_DetLastSummaryFrame < 0)
@@ -1112,11 +1118,8 @@ static void DetectCheckFrame(unsigned frame)
         else if ((int)frame - g_DetLastSummaryFrame >= g_DetCfg.SummaryEvery)
         {
             g_DetLastSummaryFrame = (int)frame;
-            if (g_DetTotalHits != g_DetHitsAtLastSummary)
-            {
-                g_DetHitsAtLastSummary = g_DetTotalHits;
-                ReportDetectSummary(0);
-            }
+            g_DetHitsAtLastSummary = g_DetTotalHits;
+            ReportDetectSummary(0);
         }
     }
 }

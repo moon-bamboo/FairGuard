@@ -38,10 +38,26 @@ FairGuard.ini          <- 配置
 **最先确认三件事**（日志开头）：
 
 ```
-FairGuard 1.2 start
+FairGuard 1.3 start
+config: Enable=0 DumpRaw=0 ...                    <- 探针默认关闭，日志因此很小
 detector: Enable=1 MinEvents=5 MinDest=3 RatioPercent=0 MissionFilter=7 TraceAll=0
+detector: ShowAlert=1 AlertSeconds=10 WindowFrames=600 WindowHits=2 HashChain=1 ...
 hook: frame alive (0x55D360), CurrentFrame=...
 ```
+
+对局中**每约 30 秒**会有一行"报活"。探针关掉之后，**这一行是唯一的活性指标**：
+
+```
+[DETECT] alive f=12600 hits=5 scans=177 frames=12601 byHouse=h0:5 chain=... recs=5
+                         ^^^^^^^^^ scans = 取到过命令的帧数
+                                   它在涨 = 事件队列有数据、检测器在正常跑
+                                    一直是 0 = 根本没取到数据（单机？地址不对？）
+```
+
+> **关于日志体积**：探针（`[Probe] Enable=1`）会逐帧输出统计行，
+> 实测一局 4.5 分钟就有 16,159 行 / 1 MB，其中 **96% 是探针的 `evt` 行**。
+> 所以正式使用默认**关掉探针**，日志只剩检测器的告警与报活（约 1/25）。
+> 需要排查时再打开 —— 见 `FairGuard.ini` 里 `[Probe] Enable` 的注释。
 
 > ⚠️ **单机没有数据**：那套事件队列只为网络同步存在，单机时恒为空。**必须联机**。
 >
@@ -111,7 +127,7 @@ hook: frame alive (0x55D360), CurrentFrame=...
 ```
 *** DETECT f=26004 h=1 units=10 veh=10 MM=10 (Move=0 Enter=10) ratio=100% chain=1A2B3C4D5E6F7081
 *** DETECT-REPEAT f=26548 h=1 hitsInWindow=2/600 frames, totalHits=2
-[DETECT-SUMMARY] ver=1.2 f=74000 hits=2 scans=1904 byHouse=h1:2 chain=<完整64位> recs=2
+[DETECT-SUMMARY] ver=1.3 f=74000 hits=2 scans=1904 byHouse=h1:2 chain=<完整64位> recs=2
 ```
 
 | 字段 | 含义 |
