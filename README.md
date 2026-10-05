@@ -210,29 +210,44 @@ trace f=13823 h=0 units=0 veh=0 MM=0 (Move=0 Enter=0 Other=20) ratio=0% filtered
 
 ## 七、构建与自检
 
+**从仓库根运行**：
+
 ```bat
-cd src
-build.bat
+src\build.bat
 ```
 
-需要 32 位 mingw（`..\..\..\ToolsChain\w64devkit`）。产物 `FairGuard.dll` 会被复制到项目根。
-`build.bat` 会自动"编译 + 跑三个离线测试 + 落盘"，全部通过才算成功。
+需要 32 位 mingw（同工作区的 `ToolsChain\w64devkit`，脚本会自己找）。
+产物 `FairGuard.dll` 与 `FairGuardReport.exe` 会被放到仓库根。
+
+`build.bat` 会自动"**编译 + 跑 4 个离线自检 + 落盘**"，**全部通过才算成功**
+（任何一个不过就 `exit 1` 且不出产物 —— 别绕过它）：
+
+| 自检 | 覆盖 |
+|---|---|
+| `test_detector` | 判据核心，63 项（含误报 / 漏报的回归用例） |
+| `test_abi` | 屏幕提示的调用约定，5 项（含 2 万次调用的栈平衡） |
+| `test_load` | DLL 加载 / 导出 / Syringe 握手 |
+| `FairGuardReport --selftest` | SHA-256 标准向量 + 哈希链确定性 |
 
 > 目录名是中文，32 位 gcc 在非 ASCII 路径下会找不到自己的库，
 > 所以 `build.bat` 会把工具链和源码暂存到 `%TEMP%`（纯 ASCII）里编译，再拷回来。
 
-**离线自检**（不需要游戏，三个都应输出 `failures: 0`）：
+**改过文档或配置之后**，再跑一次一致性审计：
 
 ```bat
-gcc -O2 -Wall -o test_detector.exe test\test_detector.c -I src
-test_detector.exe     :: 判据核心 63 项（含误报/漏报的回归用例）
-
-gcc -O2 -Wall -o test_abi.exe test\test_abi.c
-test_abi.exe          :: 屏幕提示的调用约定 5 项
-
-gcc -O2 -o test_load.exe test\test_load.c -lkernel32
-test_load.exe         :: DLL 加载 / 导出 / Syringe 握手
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_docs.ps1
 ```
+
+它会核对版本号、自检项数、文档里引用的文件是否存在、ini 键与代码是否对得上等
+（细节见 `开发文档/README.md`）。
+
+**打包发布**：
+
+```bat
+tools\make_release.bat
+```
+
+生成 `FairGuard-1.3.zip`（4 个必需文件 + 4 份文档），用于 GitHub Release。
 
 ---
 
@@ -240,7 +255,7 @@ test_load.exe         :: DLL 加载 / 导出 / Syringe 握手
 
 | 文件 | 说明 |
 |---|---|
-| `FairGuard.dll` | 插件本体（37,005 字节） |
+| `FairGuard.dll` | 插件本体（约 35 KB） |
 | `FairGuard.dll.inj` | 钩子声明（**纯 ASCII**）：`0x64C38D`(6) + `0x55D360`(5) |
 | `FairGuard.ini` | 配置（`[Detector]` 检测器 / `[Probe]` 探针，全中文注释） |
 | `FairGuardReport.exe` | **日志阅读器 + 哈希链校验器**（双击生成 HTML 报告） |
