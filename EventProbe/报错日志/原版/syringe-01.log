@@ -1,0 +1,540 @@
+[15:35:35] Syringe 0.7.3.0
+[15:35:35] ===============
+
+[15:35:35] WinMain: arguments = ""gamemd.exe"  -SPEEDCONTROL"
+[15:35:35] WinMain: Trying to load executable file "gamemd.exe"...
+
+[15:35:35] SyringeDebugger::RetrieveInfo: Retrieving info from the executable file...
+[15:35:35] SyringeDebugger::RetrieveInfo: Executable information successfully retrieved.
+[15:35:35] 	exe = gamemd.exe
+[15:35:35] 	pImLoadLibrary = 0x007E1220
+[15:35:35] 	pImGetProcAddress = 0x007E1250
+[15:35:35] 	pcEntryPoint = 0x007CD80F
+[15:35:35] 	dwExeSize = 0x00497110
+[15:35:35] 	dwExeCRC = 0x54CC0A13
+[15:35:35] 	dwTimestamp = 0x3BDF544E
+
+[15:35:35] SyringeDebugger::RetrieveInfo: Opening gamemd.exe to determine imports.
+[15:35:35] WinMain: SyringeDebugger::FindDLLs();
+
+[15:35:35] SyringeDebugger::FindDLLs: Recognized DLL: "AutoKit.dll"
+[15:35:35] SyringeDebugger::Handshake: Calling "AutoKit.dll" ...
+[15:35:35] SyringeDebugger::Handshake: Answers "AutoKit 1.0: auto-repair + auto-hand-miner (event-driven, client-side only)." (0)
+[15:35:35] SyringeDebugger::FindDLLs: Recognized DLL: "AutoLoad_nolog.dll"
+[15:35:35] SyringeDebugger::Handshake: Calling "AutoLoad_nolog.dll" ...
+[15:35:35] SyringeDebugger::Handshake: Answers "AutoLoad 2.6: press Ctrl+D to load; Ctrl+T to select same IFV variant (T-filtered)." (0)
+[15:35:35] SyringeDebugger::FindDLLs: Recognized DLL: "ChatBox.dll"
+[15:35:35] SyringeDebugger::Handshake: Calling "ChatBox.dll" ...
+[15:35:35] SyringeDebugger::Handshake: Answers "ChatBox 0.5.0: message log + on-screen message box (client-side only)." (0)
+[15:35:35] SyringeDebugger::FindDLLs: Recognized DLL: "EventProbe.dll"
+[15:35:35] SyringeDebugger::Handshake: Calling "EventProbe.dll" ...
+[15:35:35] SyringeDebugger::Handshake: Answers "EventProbe 1.0: read-only event-queue probe (statistics only, no game state touched)." (0)
+[15:35:35] SyringeDebugger::FindDLLs: Recognized DLL: "NoCopyProtect.dll"
+[15:35:35] SyringeDebugger::Handshake: Calling "NoCopyProtect.dll" ...
+[15:35:35] SyringeDebugger::Handshake: Answers "NoCopyProtect 1.0: gamemd.exe copy protection bypassed (based on Ares 3.0)." (0)
+[15:35:35] SyringeDebugger::FindDLLs: Done (18 hooks added).
+
+[15:35:35] WinMain: SyringeDebugger::Run("-SPEEDCONTROL");
+
+[15:35:35] SyringeDebugger::Run: Running process to debug. cmd = "gamemd.exe -SPEEDCONTROL"
+[15:35:35] SyringeDebugger::Run: Allocating 0x580 bytes...
+[15:35:35] SyringeDebugger::Run: pAlloc = 0x001C0000
+[15:35:35] SyringeDebugger::Run: Writing DLL loader & caller code...
+[15:35:35] SyringeDebugger::Run: pcLoadLibrary = 0x001C0000
+[15:35:35] SyringeDebugger::Run: Entering debug loop...
+[15:35:35] SyringeDebugger::HandleException: Finished retrieving proc addresses.
+[15:35:35] SyringeDebugger::HandleException: Creating code hooks.
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x02A1002E)!
+[15:35:50] 	The process tried to read from 0xC35AE9F8.
+
+[15:35:50] Registers:
+[15:35:50] 	EAX = 0x00000000	ECX = 0x00000001	EDX = 0x00000004
+[15:35:50] 	EBX = 0x0000000A	ESP = 0x0019D1C4	EBP = 0x0019F0A4
+[15:35:50] 	ESI = 0x00000001	EDI = 0x00000000	EIP = 0x02A1002E
+
+[15:35:50] 	Stack dump:
+[15:35:50] 	0x0019D1C4:	0x00000000
+[15:35:50] 	0x0019D1C8:	0x00000001
+[15:35:50] 	0x0019D1CC:	0x0019F0A4
+[15:35:50] 	0x0019D1D0:	0x00000000
+[15:35:50] 	0x0019D1D4:	0x00000000
+[15:35:50] 	0x0019D1D8:	0x00000001
+[15:35:50] 	0x0019D1DC:	0x00000000
+[15:35:50] 	0x0019D1E0:	0x0019F0A4
+[15:35:50] 	0x0019D1E4:	0x02A1000D
+[15:35:50] 	0x0019D1E8:	0x0019D1EC
+[15:35:50] 	0x0019D1EC:	0x00000000
+[15:35:50] 	0x0019D1F0:	0x00200246
+[15:35:50] 	0x0019D1F4:	0x00000000
+[15:35:50] 	0x0019D1F8:	0x00000001
+[15:35:50] 	0x0019D1FC:	0x0019F0A4
+[15:35:50] 	0x0019D200:	0x0019D214
+[15:35:50] 	0x0019D204:	0x00000000
+[15:35:50] 	0x0019D208:	0x00000004
+[15:35:50] 	0x0019D20C:	0x00000001
+[15:35:50] 	0x0019D210:	0x00000000
+[15:35:50] 	0x0019D214:	0x006475B3
+[15:35:50] 	0x0019D218:	0x00000000
+[15:35:50] 	0x0019D21C:	0x00000000
+[15:35:50] 	0x0019D220:	0x00000000
+[15:35:50] 	0x0019D224:	0x00000000
+[15:35:50] 	0x0019D228:	0x00000001
+[15:35:50] 	0x0019D22C:	0x0019F0A4
+[15:35:50] 	0x0019D230:	0x00000000
+[15:35:50] 	0x0019D234:	0x00000000
+[15:35:50] 	0x0019D238:	0x74CD47A0
+[15:35:50] 	0x0019D23C:	0x00000000
+[15:35:50] 	0x0019D240:	0x74CD47A0
+[15:35:50] 	0x0019D244:	0x0019D25C
+[15:35:50] 	0x0019D248:	0x753CB467
+[15:35:50] 	0x0019D24C:	0x76E70A48
+[15:35:50] 	0x0019D250:	0x76DD4D50
+[15:35:50] 	0x0019D254:	0x00000000
+[15:35:50] 	0x0019D258:	0x74CD47A0
+[15:35:50] 	0x0019D25C:	0x00000000
+[15:35:50] 	0x0019D260:	0x76DD4E57
+[15:35:50] 	0x0019D264:	0x08E168A1
+[15:35:50] 	0x0019D268:	0x00000000
+[15:35:50] 	0x0019D26C:	0x00002710
+[15:35:50] 	0x0019D270:	0x00000000
+[15:35:50] 	0x0019D274:	0x6F285AB7
+[15:35:50] 	0x0019D278:	0x00000001
+[15:35:50] 	0x0019D27C:	0x1819E830
+[15:35:50] 	0x0019D280:	0x0087F778
+[15:35:50] 	0x0019D284:	0x00000000
+[15:35:50] 	0x0019D288:	0x00000011
+[15:35:50] 	0x0019D28C:	0x00000000
+[15:35:50] 	0x0019D290:	0x0019F0A4
+[15:35:50] 	0x0019D294:	0x0053ECA0
+[15:35:50] 	0x0019D298:	0x00000011
+[15:35:50] 	0x0019D29C:	0x00000000
+[15:35:50] 	0x0019D2A0:	0x00000001
+[15:35:50] 	0x0019D2A4:	0x0019F0A4
+[15:35:50] 	0x0019D2A8:	0x0055DE45
+[15:35:50] 	0x0019D2AC:	0x00000001
+[15:35:50] 	0x0019D2B0:	0x00000004
+[15:35:50] 	0x0019D2B4:	0x0019F0A4
+[15:35:50] 	0x0019D2B8:	0x00000000
+[15:35:50] 	0x0019D2BC:	0x65015220
+[15:35:50] 	0x0019D2C0:	0x000010B8
+[15:35:50] 	0x0019D2C4:	0x76DA144C
+[15:35:50] 	0x0019D2C8:	0x7682608C
+[15:35:50] 	0x0019D2CC:	0x0000004D
+[15:35:50] 	0x0019D2D0:	0x00000015
+[15:35:50] 	0x0019D2D4:	0x00000000
+[15:35:50] 	0x0019D2D8:	0x76825FD0
+[15:35:50] 	0x0019D2DC:	0x00000000
+[15:35:50] 	0x0019D2E0:	0x64F649FB
+[15:35:50] 	0x0019D2E4:	0x00000000
+[15:35:50] 	0x0019D2E8:	0x00000200
+[15:35:50] 	0x0019D2EC:	0x00000430
+[15:35:50] 	0x0019D2F0:	0x00000000
+[15:35:50] 	0x0019D2F4:	0x00000000
+[15:35:50] 	0x0019D2F8:	0x00000000
+[15:35:50] 	0x0019D2FC:	0x00000020
+[15:35:50] 	0x0019D300:	0x00DB07D0
+[15:35:50] 	0x0019D304:	0x00000064
+[15:35:50] 	0x0019D308:	0x0019D390
+[15:35:50] 	0x0019D30C:	0x00000020
+[15:35:50] 	0x0019D310:	0x525C3A45
+[15:35:50] 	0x0019D314:	0x4D5C3241
+[15:35:50] 	0x0019D318:	0x614D646F
+[15:35:50] 	0x0019D31C:	0x6567616E
+[15:35:50] 	0x0019D320:	0x31762D72
+[15:35:50] 	0x0019D324:	0x302E312E
+[15:35:50] 	0x0019D328:	0x4D5C352E
+[15:35:50] 	0x0019D32C:	0x5C73646F
+[15:35:50] 	0x0019D330:	0x69727559
+[15:35:50] 	0x0019D334:	0x6C69465C
+[15:35:50] 	0x0019D338:	0x415C7365
+[15:35:50] 	0x0019D33C:	0x4C6F7475
+[15:35:50] 	0x0019D340:	0x2E64616F
+[15:35:50] 	0x0019D344:	0x00696E69
+[15:35:50] 	0x0019D348:	0x6C642E67
+[15:35:50] 	0x0019D34C:	0x00BB006C
+[15:35:50] 	0x0019D350:	0x0019D38F
+[15:35:50] 	0x0019D354:	0x0019D364
+[15:35:50] 	0x0019D358:	0x0019D38E
+[15:35:50] 	0x0019D35C:	0x00000000
+[15:35:50] 	0x0019D360:	0x64F22F70
+[15:35:50] 	0x0019D364:	0x6B6F6F68
+[15:35:50] 	0x0019D368:	0x7266203A
+[15:35:50] 	0x0019D36C:	0x20656D61
+[15:35:50] 	0x0019D370:	0x76696C61
+[15:35:50] 	0x0019D374:	0x30282065
+[15:35:50] 	0x0019D378:	0x44353578
+[15:35:50] 	0x0019D37C:	0x29303633
+[15:35:50] 	0x0019D380:	0x7543202C
+[15:35:50] 	0x0019D384:	0x6E657272
+[15:35:50] 	0x0019D388:	0x61724674
+[15:35:50] 	0x0019D38C:	0x303D656D
+[15:35:50] 	0x0019D390:	0x00000000
+[15:35:50] 	0x0019D394:	0x0000005A
+[15:35:50] 	0x0019D398:	0x107D4F58
+[15:35:50] 	0x0019D39C:	0x107D4FC0
+[15:35:50] 	0x0019D3A0:	0x1083D2E8
+[15:35:50] 	0x0019D3A4:	0x00BB0000
+[15:35:50] 	0x0019D3A8:	0x00000000
+[15:35:50] 	0x0019D3AC:	0x0019D3CC
+[15:35:50] 	0x0019D3B0:	0x76F43EF6
+[15:35:50] 	0x0019D3B4:	0x00000000
+[15:35:50] 	0x0019D3B8:	0x00000000
+[15:35:50] 	0x0019D3BC:	0x00000000
+[15:35:50] 	0x0019D3C0:	0x00000001
+[15:35:50] 	0x0019D3C4:	0x0019D410
+[15:35:50] 	0x0019D3C8:	0x0019D3E4
+[15:35:50] 	0x0019D3CC:	0x0019D3E0
+[15:35:50] 	0x0019D3D0:	0x76F2BB38
+[15:35:50] 	0x0019D3D4:	0x00BB0000
+[15:35:50] 	0x0019D3D8:	0x3FD2F44A
+[15:35:50] 	0x0019D3DC:	0x0019D134
+[15:35:50] 	0x0019D3E0:	0x0019D3F0
+[15:35:50] 	0x0019D3E4:	0x0019FED4
+[15:35:50] 	0x0019D3E8:	0x753E0D30
+[15:35:50] 	0x0019D3EC:	0x4A83A626
+[15:35:50] 	0x0019D3F0:	0xFFFFFFFE
+[15:35:50] 	0x0019D3F4:	0x0019D41C
+[15:35:50] 	0x0019D3F8:	0x76DE11D7
+[15:35:50] 	0x0019D3FC:	0xFFFFFFFF
+[15:35:50] 	0x0019D400:	0x00000000
+[15:35:50] 	0x0019D404:	0x00000000
+[15:35:50] 	0x0019D408:	0x64F31350
+[15:35:50] 	0x0019D40C:	0x00000000
+[15:35:50] 	0x0019D410:	0x00000000
+[15:35:50] 	0x0019D414:	0x00000000
+[15:35:50] 	0x0019D418:	0x00000000
+[15:35:50] 	0x0019D41C:	0x0019F0A4
+[15:35:50] 	0x0019D420:	0x64F33D80
+[15:35:50] 	0x0019D424:	0x00000000
+[15:35:50] 	0x0019D428:	0x00000000
+[15:35:50] 	0x0019D42C:	0x64F31350
+[15:35:50] 	0x0019D430:	0x00000000
+[15:35:50] 	0x0019D434:	0x00000004
+[15:35:50] 	0x0019D438:	0x00000001
+[15:35:50] 	0x0019D43C:	0x0019F0A4
+[15:35:50] 	0x0019D440:	0x029E0070
+[15:35:50] 	0x0019D444:	0x0019D448
+[15:35:50] 	0x0019D448:	0x00000000
+[15:35:50] 	0x0019D44C:	0x00000246
+[15:35:50] 	0x0019D450:	0x00000001
+[15:35:50] 	0x0019D454:	0x00000004
+[15:35:50] 	0x0019D458:	0x0019F0A4
+[15:35:50] 	0x0019D45C:	0x0019D470
+[15:35:50] 	0x0019D460:	0x00000000
+[15:35:50] 	0x0019D464:	0x40000000
+[15:35:50] 	0x0019D468:	0x0087E3C0
+[15:35:50] 	0x0019D46C:	0x00000001
+[15:35:50] 	0x0019D470:	0x0048CE8F
+[15:35:50] 	0x0019D474:	0x02B92100
+[15:35:50] 	0x0019D478:	0x00000000
+[15:35:50] 	0x0019D47C:	0x00000016
+[15:35:50] 	0x0019D480:	0x100C78FC
+[15:35:50] 	0x0019D484:	0x00000004
+[15:35:50] 	0x0019D488:	0xFFFFFFFE
+[15:35:50] 	0x0019D48C:	0x00000808
+[15:35:50] 	0x0019D490:	0x0000A390
+[15:35:50] 	0x0019D494:	0x00000000
+[15:35:50] 	0x0019D498:	0xFFFFFFFF
+[15:35:50] 	0x0019D49C:	0x00000001
+[15:35:50] 	0x0019D4A0:	0x000010DE
+[15:35:50] 	0x0019D4A4:	0x00002F04
+[15:35:50] 	0x0019D4A8:	0x00001771
+[15:35:50] 	0x0019D4AC:	0x0000205D
+[15:35:50] 	0x0019D4B0:	0x000000A1
+[15:35:50] 	0x0019D4B4:	0x00000A8C
+[15:35:50] 	0x0019D4B8:	0x0056004E
+[15:35:50] 	0x0019D4BC:	0x00440049
+[15:35:50] 	0x0019D4C0:	0x00410049
+[15:35:50] 	0x0019D4C4:	0x00470020
+[15:35:50] 	0x0019D4C8:	0x00460065
+[15:35:50] 	0x0019D4CC:	0x0072006F
+[15:35:50] 	0x0019D4D0:	0x00650063
+[15:35:50] 	0x0019D4D4:	0x00520020
+[15:35:50] 	0x0019D4D8:	0x00580054
+[15:35:50] 	0x0019D4DC:	0x00350020
+[15:35:50] 	0x0019D4E0:	0x00370030
+[15:35:50] 	0x0019D4E4:	0x00000030
+[15:35:50] 	0x0019D4E8:	0x00000000
+[15:35:50] 	0x0019D4EC:	0x00000000
+[15:35:50] 	0x0019D4F0:	0x00000000
+[15:35:50] 	0x0019D4F4:	0x00000000
+[15:35:50] 	0x0019D4F8:	0x00000000
+[15:35:50] 	0x0019D4FC:	0x00000000
+[15:35:50] 	0x0019D500:	0x00000000
+[15:35:50] 	0x0019D504:	0x00000000
+[15:35:50] 	0x0019D508:	0x00000000
+[15:35:50] 	0x0019D50C:	0x00000000
+[15:35:50] 	0x0019D510:	0x00000000
+[15:35:50] 	0x0019D514:	0x00000000
+[15:35:50] 	0x0019D518:	0x00000000
+[15:35:50] 	0x0019D51C:	0x00000000
+[15:35:50] 	0x0019D520:	0x00000000
+[15:35:50] 	0x0019D524:	0x00000000
+[15:35:50] 	0x0019D528:	0x00000000
+[15:35:50] 	0x0019D52C:	0x00000000
+[15:35:50] 	0x0019D530:	0x00000000
+[15:35:50] 	0x0019D534:	0x00000000
+[15:35:50] 	0x0019D538:	0x00000000
+[15:35:50] 	0x0019D53C:	0x00000000
+[15:35:50] 	0x0019D540:	0x00000000
+[15:35:50] 	0x0019D544:	0x00000000
+[15:35:50] 	0x0019D548:	0x00000000
+[15:35:50] 	0x0019D54C:	0x00000000
+[15:35:50] 	0x0019D550:	0x00000000
+[15:35:50] 	0x0019D554:	0x00000000
+[15:35:50] 	0x0019D558:	0x00000000
+[15:35:50] 	0x0019D55C:	0x00000000
+[15:35:50] 	0x0019D560:	0x00000000
+[15:35:50] 	0x0019D564:	0x00000000
+[15:35:50] 	0x0019D568:	0x00000000
+[15:35:50] 	0x0019D56C:	0x00000000
+[15:35:50] 	0x0019D570:	0x00000000
+[15:35:50] 	0x0019D574:	0x00000000
+[15:35:50] 	0x0019D578:	0x00000000
+[15:35:50] 	0x0019D57C:	0x00000000
+[15:35:50] 	0x0019D580:	0x00000000
+[15:35:50] 	0x0019D584:	0x00000000
+[15:35:50] 	0x0019D588:	0x00000000
+[15:35:50] 	0x0019D58C:	0x00000000
+[15:35:50] 	0x0019D590:	0x00000000
+[15:35:50] 	0x0019D594:	0x00000000
+[15:35:50] 	0x0019D598:	0x00000000
+[15:35:50] 	0x0019D59C:	0x00000000
+[15:35:50] 	0x0019D5A0:	0x00000000
+[15:35:50] 	0x0019D5A4:	0x00000000
+[15:35:50] 	0x0019D5A8:	0x00000000
+[15:35:50] 	0x0019D5AC:	0x00000000
+[15:35:50] 	0x0019D5B0:	0x00000000
+[15:35:50] 	0x0019D5B4:	0x00000000
+[15:35:50] 	0x0019D5B8:	0x005C005C
+[15:35:50] 	0x0019D5BC:	0x005C003F
+[15:35:50] 	0x0019D5C0:	0x00430050
+
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:50] SyringeDebugger::HandleException: Exception (Code: 0xC0000005 at 0x76DD015A)!
+[15:35:52] SyringeDebugger::Run: Done with exit code 0 (0).
+
+[15:35:52] WinMain: SyringeDebugger::Run finished.
+[15:35:52] WinMain: Exiting on success.
