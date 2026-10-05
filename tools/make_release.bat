@@ -1,5 +1,11 @@
 @echo off
 rem ================================================================
+rem  FairGuard - opponent anomaly detection
+rem  Authors: BaiYueQingZhu, DeepSeek-V4.1-Flash (AI collaboration)
+rem  License: GPL-3.0 (see LICENSE in the repo root)
+rem ================================================================
+rem
+rem ================================================================
 rem  FairGuard release packer
 rem
 rem  Builds a zip containing ONLY what a player needs:

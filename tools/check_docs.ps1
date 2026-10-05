@@ -1,4 +1,7 @@
 ﻿<#
+    作者：白月青竹 / DeepSeek-V4.1-Flash（AI 协作）
+    许可：GPL-3.0，见仓库根目录的 LICENSE
+
     check_docs.ps1 —— 文档与项目一致性审计
 
     ============================ 为什么需要它 ============================
@@ -72,7 +75,23 @@ foreach ($f in $docs) {
         if ([int]$m.Groups[1].Value -ne $nAbi) { Bad "$($f.Name)：'$($m.Value)' —— 实际 $nAbi 项"; $nBad++ }
     }
 }
-if ($nBad -eq 0) { Ok "文档提到的自检项数与代码一致" }
+
+# 脚本（.bat / .ps1）里也会写项数，一并核对。
+# 起因：build.bat 里一直写着 "37 checks"，而 test_detector 早就涨到 63 项了 ——
+# 只查 .md 会漏掉这种地方。
+Get-ChildItem $repo -Recurse -Include *.bat, *.ps1 -ErrorAction SilentlyContinue |
+  Where-Object { $_.FullName -notmatch '\\_archive\\' } | ForEach-Object {
+    $scriptName = $_.Name
+    foreach ($line in ((ReadU8 $_.FullName) -split "`n")) {
+        foreach ($m in [regex]::Matches($line, 'test_detector[^\n]{0,40}?(\d+)\s+checks')) {
+            if ([int]$m.Groups[1].Value -ne $nDet) { Bad "$scriptName：写 test_detector 有 $($m.Groups[1].Value) 项，实际 $nDet 项"; $nBad++ }
+        }
+        foreach ($m in [regex]::Matches($line, 'test_abi[^\n]{0,40}?(\d+)\s+checks')) {
+            if ([int]$m.Groups[1].Value -ne $nAbi) { Bad "$scriptName：写 test_abi 有 $($m.Groups[1].Value) 项，实际 $nAbi 项"; $nBad++ }
+        }
+    }
+}
+if ($nBad -eq 0) { Ok "文档与脚本里提到的自检项数都与代码一致" }
 
 # ------------------------------------------------------- 3) 文件大小（提醒性质）
 Write-Host "`n=== 3) 编译产物大小 ===" -ForegroundColor Cyan

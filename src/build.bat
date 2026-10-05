@@ -1,4 +1,10 @@
 @echo off
+rem ================================================================
+rem  FairGuard - opponent anomaly detection
+rem  Authors: BaiYueQingZhu, DeepSeek-V4.1-Flash (AI collaboration)
+rem  License: GPL-3.0 (see LICENSE in the repo root)
+rem ================================================================
+rem
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
@@ -136,7 +142,7 @@ rem  "failures: 0".  See the detector usage doc, section 9.
 rem ---------------------------------------------------------------
 echo [4/5] running self-tests...
 
-echo       - test_detector (judgement core, 37 checks)
+echo       - test_detector (judgement core, 63 checks)
 "%TC%\bin\gcc.exe" -O2 -Wall -o "%BUILD%\test_detector.exe" "%~dp0..\test\test_detector.c" -I"%SRC%"
 if errorlevel 1 ( echo [ERROR] test_detector failed to compile. & goto :fail )
 "%BUILD%\test_detector.exe" | findstr /c:"failures: 0" >nul
