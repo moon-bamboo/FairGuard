@@ -65,10 +65,9 @@
  *   [14..18]Target [19..23]Destination */
 #define DET_HEAD_SAVE       24
 
-/* 参与哈希链的事件头部长度：+0..+12
- * （为什么不是整条：Destination 之后两台机器不一样——那是本地状态，
- *   只有头部在各客户端上逐字节一致，见 开发文档/06 第 3.4 节） */
-#define DET_HEAD_HASH       13
+/* ⚠️ 1.3 起：事件字节**不再参与哈希链**（哈希链只用日志里可见的字段，
+ *   这样校验工具才能独立重算 —— 见 FairGuard.c 的 ChainPush 注释）。
+ *   heads 现在只供 [Detector] LogRaw=1 时输出 `detraw` 行，用于人工复核。 */
 
 /* 单帧单玩家最多跟踪多少个不同的 Whom / Destination */
 #define DET_MAX_UNIQ        64
@@ -97,7 +96,7 @@ typedef struct {
     int      nDup;        /* 去重时遇到"已有值"的次数 —— 正常现象，不是错误 */
     int      nOverflow;   /* 去重集合真的装不下了（>0 才是异常） */
 
-    /* 命中时保留的事件字节（只对前 DET_HEAD_HASH 字节做哈希，见文件头说明） */
+    /* 命中时保留的事件字节（供 LogRaw=1 的 detraw 行回放，不参与哈希链） */
     unsigned char heads[DET_MAX_UNIQ * DET_HEAD_SAVE];
     int      nHeads;
 } DetStat;

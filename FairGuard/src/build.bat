@@ -81,6 +81,7 @@ set "SRCDIR=%~dp0."
 if "%EP_INPLACE%"=="1" (
     echo [2/5] EP_INPLACE=1 - building in place
     set "SRC=%SRCDIR%"
+    set "TOOLDIR=%~dp0..\tools"
     set "BUILD=%~dp0..\_build"
     if not exist "!BUILD!" mkdir "!BUILD!"
 ) else (
@@ -92,8 +93,11 @@ if "%EP_INPLACE%"=="1" (
     robocopy "%TC%" "!WORK!\toolchain" /E /XD share src /NFL /NDL /NJH /NJS /NP /R:0 /W:0 >nul
     echo       copying source...
     robocopy "!SRCDIR!" "!WORK!\src" /E /NFL /NDL /NJH /NJS /NP /R:0 /W:0 >nul
+    echo       copying tools...
+    robocopy "%~dp0..\tools" "!WORK!\tools" /E /NFL /NDL /NJH /NJS /NP /R:0 /W:0 >nul
     set "TC=!WORK!\toolchain"
     set "SRC=!WORK!\src"
+    set "TOOLDIR=!WORK!\tools"
     set "BUILD=!WORK!\out"
     mkdir "!BUILD!" 2>nul
 )
@@ -154,6 +158,12 @@ set "LOADRC=!errorlevel!"
 popd
 if not "!LOADRC!"=="0" ( echo [ERROR] test_load FAILED. & goto :fail )
 
+echo       - FairGuardReport (log reader + hash-chain verifier)
+"%TC%\bin\gcc.exe" -O2 -Wall -o "%BUILD%\FairGuardReport.exe" "%TOOLDIR%\FairGuardReport.c"
+if errorlevel 1 ( echo [ERROR] FairGuardReport failed to compile. & goto :fail )
+"%BUILD%\FairGuardReport.exe" --selftest | findstr /c:"failures: 0" >nul
+if errorlevel 1 ( echo [ERROR] FairGuardReport --selftest FAILED. & goto :fail )
+
 rem ---------------------------------------------------------------
 rem  [5/5] Collect the artifact.
 rem  Target is the PROJECT ROOT (one level up from src\), not src\ itself.
@@ -162,6 +172,11 @@ echo [5/5] collecting output...
 copy /y "%BUILD%\FairGuard.dll" "%~dp0..\FairGuard.dll" >nul
 if errorlevel 1 (
     echo [ERROR] could not copy FairGuard.dll back.
+    goto :fail
+)
+copy /y "%BUILD%\FairGuardReport.exe" "%~dp0..\FairGuardReport.exe" >nul
+if errorlevel 1 (
+    echo [ERROR] could not copy FairGuardReport.exe back.
     goto :fail
 )
 
@@ -177,6 +192,9 @@ echo     FairGuard.dll.inj      ^<- hook declaration (name must match exactly)
 echo     FairGuard.ini          ^<- config, optional
 echo.
 echo Log: ^<game folder^>\MsgLog\FairGuard_YYYY-MM-DD_HH-MM-SS.log
+echo.
+echo Optional: FairGuardReport.exe reads a log and writes a readable HTML
+echo           report + verifies the hash chain. Double-click it.
 echo.
 if not "%EP_NOPAUSE%"=="" goto :eof
 pause

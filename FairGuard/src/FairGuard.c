@@ -54,6 +54,7 @@
 #include <windows.h>
 
 #include "detector_core.h"   /* 判据核心：纯算法，可单测 */
+#include "hashchain.h"       /* 哈希链单步 —— 与校验工具共用同一份实现 */
 #include "sha256.h"          /* 哈希链用的 SHA-256 */
 
 #define GUARD_VERSION   "1.3"
@@ -727,19 +728,14 @@ static void ReportBurst(unsigned frame, int house, int ops, int movers, int ente
 static DetStat g_Det[MAX_HOUSES];
 
 /* ---------------- 哈希链 ----------------
- * chain[n] = SHA256( chain[n-1] || 本次记录 || 命中事件的头部字节 )
+ * chain[n] = SHA256( chain[n-1] || 本次记录 )
  * 每次告警把当前 chain 写进日志，局末再写最终值。
- * 事后改中间任意一行，之后所有 chain 值都要重算，对不上就暴露。 */
+ * 事后改中间任意一行，之后所有 chain 值都要重算，对不上就暴露。
+ *
+ * ⚠️ 记录的具体字段与字节布局见下面 ChainPush 的注释 ——
+ *    校验工具（tools/FairGuardReport.c）必须与之逐字节一致。 */
 static unsigned char g_Chain[32];
 static int           g_ChainRecords = 0;
-
-static void PutU32(unsigned char* p, unsigned v)
-{
-    p[0] = (unsigned char)(v);
-    p[1] = (unsigned char)(v >> 8);
-    p[2] = (unsigned char)(v >> 16);
-    p[3] = (unsigned char)(v >> 24);
-}
 
 /* ---------------- 每个房号的命中状态（滑动窗口 + 累计）---------------- */
 
@@ -788,34 +784,27 @@ static void ShowScreenAlert(const wchar_t* text)
        1);                           /* silent=1：不播提示音，别吓人 */
 }
 
-/* 哈希链推进 + 取当前值前 8 字节的 hex */
+/*
+ * 哈希链推进。
+ *
+ * ★★ 1.3 重写了算法：**只用日志里可见的字段**算链。
+ *
+ * 为什么必须改：1.2 的算法把 `GetTickCount()` 和命中事件的原始字节也拌了进去 ——
+ * 而那两样东西**日志里根本没有记录**。结果是：这条链只能防"改日志的人"，
+ * 却**没有任何人能验证它**（包括我们自己写的 `FairGuardReport` 工具）。
+ * 哈希链的全部意义就是"让别人能独立校验"，所以那个设计是自相矛盾的。
+ *
+ * 现在参与哈希的六个字段，全部能从一条 `*** DETECT` 行里读出来：
+ *     房号 h=  帧号 f=  MM=(nEvt)  units=(nWhom)  veh=(nDest)  + 第几条
+ *
+ * ⚠️ 真正的实现放在 `hashchain.h`，**校验工具 include 的是同一份** ——
+ *    这样两边不可能跑偏（各自实现才是最大的坑，见那个文件的注释）。
+ */
 static void ChainPush(int house, unsigned frame, const DetStat* s)
 {
-    unsigned char rec[32];
-    Sha256Ctx     c;
-
-    PutU32(rec + 0,  (unsigned)house);
-    PutU32(rec + 4,  frame);
-    PutU32(rec + 8,  (unsigned)s->nEvt);
-    PutU32(rec + 12, (unsigned)s->nWhom);
-    PutU32(rec + 16, (unsigned)s->nDest);
-    PutU32(rec + 20, (unsigned)GetTickCount());
-    PutU32(rec + 24, (unsigned)s->nHeads);
-    PutU32(rec + 28, (unsigned)g_DetTotalHits);
-
-    Sha256_Init(&c);
-    Sha256_Update(&c, g_Chain, 32);
-    Sha256_Update(&c, rec, 32);
-
-    /* 把命中事件的头部位节也绑进链里（只取各条前 DET_HEAD_HASH 字节，
-     * 因为只有这一段在各客户端上逐字节一致） */
-    {
-        int i;
-        for (i = 0; i < s->nHeads; i++)
-            Sha256_Update(&c, s->heads + (i * DET_HEAD_SAVE), DET_HEAD_HASH);
-    }
-
-    Sha256_Final(&c, g_Chain);
+    HashChainStep(g_Chain, house, frame,
+                  s->nEvt, s->nWhom, s->nDest,
+                  (unsigned)g_ChainRecords);
     g_ChainRecords++;
 }
 
