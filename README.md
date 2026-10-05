@@ -333,3 +333,12 @@ tools\make_release.bat
 **许可**：GPL-3.0，全文见 `LICENSE`。
 
 > 免责声明见 `DISCLAIMER.md` —— **它是可疑度报告，不是作弊判决书**。
+
+---
+
+## 致谢
+
+- **[Syringe](https://github.com/CnCNet/Syringe)** —— 通用 DLL 注入器
+- **[YRpp](https://github.com/Ares-Developers/YRpp)** —— 引擎类定义，偏移探针的数据来源与参考
+- **[Ares](https://github.com/Ares-Developers/Ares)** / **[Phobos](https://github.com/Phobos-Developers/Phobos)** —— 范式对照与实现参考
+- **[RAReplayPlugin](https://github.com/WLChara/RAReplayPlugin/)**——部分实现功能参考
