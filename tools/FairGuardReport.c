@@ -49,6 +49,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
 #include <windows.h>
 
 #include "../src/hashchain.h"   /* 与插件共用的链算法 */
@@ -147,6 +148,52 @@ static void HexStr(const unsigned char* p, int n, char* out)
     int i;
     for (i = 0; i < n; i++) { out[i * 2] = h[p[i] >> 4]; out[i * 2 + 1] = h[p[i] & 0xF]; }
     out[n * 2] = 0;
+}
+
+/* ------------------------------------------------------------------
+ * 窄（UTF-8）-> 宽字符
+ *
+ * ⚠️ 为什么控制台输出全用英文、而弹窗走宽字符：
+ *
+ *   源码里的中文字面量按 UTF-8 编译（默认 -fexec-charset=UTF-8），
+ *   而 Windows 控制台的默认代码页是 **GBK(936)** —— 于是
+ *   `printf` 打出去的中文在控制台上全是乱码（实测确认过）。
+ *
+ *   两条出路：
+ *     · 控制台：**干脆用英文** —— 不依赖代码页、不依赖字体，最稳。
+ *       （报告里的中文在 HTML 里，浏览器按 UTF-8 正确显示，不受影响）
+ *     · 弹窗：改用 `MessageBoxW` + UTF-16 —— 中文正确，且这是个 GUI，
+ *       写英文对用户不友好。
+ *
+ *   注意：`MessageBoxA` 收的是 **ANSI(GBK)** 字符串，传 UTF-8 一样乱码，
+ *   所以那 6 处必须一起换成 W 版本。
+ * ------------------------------------------------------------------ */
+static void NarrowToWide(const char* src, wchar_t* dst, int cap)
+{
+    if (!src || cap <= 0 || !dst) return;
+    if (MultiByteToWideChar(CP_UTF8, 0, src, -1, dst, cap) <= 0) dst[0] = 0;
+}
+
+/* 把"一句中文 + 一行窄字符串（通常是路径）"拼成弹窗文本 */
+static void MakeMsg(wchar_t* out, int cap, const wchar_t* text, const char* narrow)
+{
+    int n;
+
+    if (!out || cap <= 0) return;
+    wcsncpy(out, text, (size_t)cap - 1);
+    out[cap - 1] = 0;
+
+    if (!narrow) return;
+
+    n = (int)wcslen(out);
+    if (n < cap - 1) { out[n++] = L'\n'; out[n] = 0; }
+
+    {
+        wchar_t wtmp[MAX_PATH];
+        NarrowToWide(narrow, wtmp, MAX_PATH);
+        n = (int)wcslen(out);
+        if (n < cap - 1) wcsncat(out, wtmp, (size_t)(cap - n - 1));
+    }
 }
 
 /* 取 exe 所在目录（带尾部反斜杠） */
@@ -859,13 +906,13 @@ int main(int argc, char** argv)
 {
     char logPath[MAX_PATH] = "";
     char outPath[MAX_PATH] = "";
-    char msg[1024];
+    wchar_t wmsg[1024];
     char paths[2][MAX_PATH];
     int  nPaths = 0;
     int  noOpen = 0;
     int  i;
 
-    printf("FairGuardReport - 日志阅读器 + 哈希链校验\n\n");
+    printf("FairGuardReport - log reader + hash-chain verifier\n\n");
 
     /* 参数：
      *   一个日志路径  -> 单份报告（哈希链校验 + 可读报告）
@@ -882,37 +929,37 @@ int main(int argc, char** argv)
     /* ---------------- 双机交叉核对模式 ---------------- */
     if (nPaths == 2)
     {
-        printf("模式：双机交叉核对\n\n");
+        printf("Mode: two-log cross-check\n\n");
 
         if (!ParseForCompare(paths[0], g_CmpA, &g_CmpAn))
         {
-            snprintf(msg, sizeof(msg) - 1, "打不开日志文件：\n%s", paths[0]);
-            printf("%s\n", msg);
-            MessageBoxA(NULL, msg, "FairGuardReport", MB_ICONERROR | MB_OK);
+            printf("Cannot open log file: %s\n", paths[0]);
+            MakeMsg(wmsg, 1024, L"打不开日志文件：", paths[0]);
+            MessageBoxW(NULL, wmsg, L"FairGuardReport", MB_ICONERROR | MB_OK);
             return 1;
         }
         if (!ParseForCompare(paths[1], g_CmpB, &g_CmpBn))
         {
-            snprintf(msg, sizeof(msg) - 1, "打不开日志文件：\n%s", paths[1]);
-            printf("%s\n", msg);
-            MessageBoxA(NULL, msg, "FairGuardReport", MB_ICONERROR | MB_OK);
+            printf("Cannot open log file: %s\n", paths[1]);
+            MakeMsg(wmsg, 1024, L"打不开日志文件：", paths[1]);
+            MessageBoxW(NULL, wmsg, L"FairGuardReport", MB_ICONERROR | MB_OK);
             return 1;
         }
-        printf("  A：%d 条命中记录\n", g_CmpAn);
-        printf("  B：%d 条命中记录\n", g_CmpBn);
+        printf("  A: %d hit record(s)\n", g_CmpAn);
+        printf("  B: %d hit record(s)\n", g_CmpBn);
 
         snprintf(outPath, sizeof(outPath) - 1, "%s.vs.html", paths[0]);
         outPath[sizeof(outPath) - 1] = 0;
         BuildCompareReport(paths[0], paths[1], outPath);
-        printf("比对报告：%s\n", outPath);
+        printf("Compare report: %s\n", outPath);
 
         if (GetFileAttributesA(outPath) != INVALID_FILE_ATTRIBUTES)
         {
             if (!noOpen) ShellExecuteA(NULL, "open", outPath, NULL, NULL, SW_SHOWNORMAL);
             return 0;
         }
-        snprintf(msg, sizeof(msg) - 1, "报告写不出来（目录只读？）：\n%s", outPath);
-        MessageBoxA(NULL, msg, "FairGuardReport", MB_ICONERROR | MB_OK);
+        MakeMsg(wmsg, 1024, L"报告写不出来（目录只读？）：", outPath);
+        MessageBoxW(NULL, wmsg, L"FairGuardReport", MB_ICONERROR | MB_OK);
         return 1;
     }
 
@@ -920,36 +967,37 @@ int main(int argc, char** argv)
 
     if (!logPath[0] && !FindLatestLog(logPath, sizeof(logPath)))
     {
-        snprintf(msg, sizeof(msg) - 1,
-            "没有找到 FairGuard 日志。\n\n"
-            "本工具会去找：\n  <本程序所在目录>\\MsgLog\\FairGuard_*.log\n\n"
-            "请把这个 exe 放到游戏根目录（gamemd.exe 那一层），\n"
-            "或者直接把一份日志文件拖到本程序上。");
-        printf("%s\n", msg);
-        MessageBoxA(NULL, msg, "FairGuardReport", MB_ICONINFORMATION | MB_OK);
+        printf("No FairGuard log found. Put this exe next to gamemd.exe,\n"
+               "or drag a log file onto it.\n");
+        MessageBoxW(NULL,
+            L"没有找到 FairGuard 日志。\n\n"
+            L"本工具会去找：\n  <本程序所在目录>\\MsgLog\\FairGuard_*.log\n\n"
+            L"请把这个 exe 放到游戏根目录（gamemd.exe 那一层），\n"
+            L"或者直接把一份日志文件拖到本程序上。",
+            L"FairGuardReport", MB_ICONINFORMATION | MB_OK);
         return 1;
     }
 
-    printf("日志：%s\n", logPath);
+    printf("Log: %s\n", logPath);
 
     if (!ParseLog(logPath))
     {
-        snprintf(msg, sizeof(msg) - 1, "打不开日志文件：\n%s", logPath);
-        printf("%s\n", msg);
-        MessageBoxA(NULL, msg, "FairGuardReport", MB_ICONERROR | MB_OK);
+        printf("Cannot open log file: %s\n", logPath);
+        MakeMsg(wmsg, 1024, L"打不开日志文件：", logPath);
+        MessageBoxW(NULL, wmsg, L"FairGuardReport", MB_ICONERROR | MB_OK);
         return 1;
     }
 
-    printf("解析到 %d 条命中记录\n", g_Count);
+    printf("Parsed %d hit record(s)\n", g_Count);
     VerifyChain();
     if (g_Count > 0)
     {
         if (OldHashAlgo())
-            printf("哈希链：这份日志是 1.2 或更早的，算法不同，无法校验（**不是被篡改**）\n");
+            printf("Hash chain: log is from 1.2 or earlier (old algorithm) - cannot verify. This is NOT tampering.\n");
         else if (g_ChainBad < 0)
-            printf("哈希链：全部一致 ✓（%d 条记录）\n", g_Count);
+            printf("Hash chain: all %d record(s) consistent - OK\n", g_Count);
         else
-            printf("哈希链：第 %d 条对不上 ✗（它之前有 %d 条是一致的）\n",
+            printf("Hash chain: MISMATCH at record #%d (the first %d were consistent)\n",
                    g_ChainBad + 1, g_ChainBad);
     }
 
@@ -957,7 +1005,7 @@ int main(int argc, char** argv)
     outPath[sizeof(outPath) - 1] = 0;
     BuildReport(logPath, outPath);
 
-    printf("报告：%s\n", outPath);
+    printf("Report: %s\n", outPath);
 
     /* 生成成功就打开浏览器（--no-open 时跳过）；
      * 拖拽运行时顺手让窗口别一闪而过 */
@@ -967,8 +1015,8 @@ int main(int argc, char** argv)
     }
     else
     {
-        snprintf(msg, sizeof(msg) - 1, "报告写不出来（目录只读？）：\n%s", outPath);
-        MessageBoxA(NULL, msg, "FairGuardReport", MB_ICONERROR | MB_OK);
+        MakeMsg(wmsg, 1024, L"报告写不出来（目录只读？）：", outPath);
+        MessageBoxW(NULL, wmsg, L"FairGuardReport", MB_ICONERROR | MB_OK);
         return 1;
     }
 

@@ -165,7 +165,16 @@ popd
 if not "!LOADRC!"=="0" ( echo [ERROR] test_load FAILED. & goto :fail )
 
 echo       - FairGuardReport (log reader + hash-chain verifier)
-"%TC%\bin\gcc.exe" -O2 -Wall -o "%BUILD%\FairGuardReport.exe" "%TOOLDIR%\FairGuardReport.c"
+rem  Charset note for the report tool:
+rem    - narrow strings stay UTF-8  -> the HTML report is written as UTF-8
+rem    - wide strings (L"...") MUST be UTF-16LE, otherwise MessageBoxW
+rem      on a GBK system shows garbage
+rem    - console text is plain English on purpose: the console code page is
+rem      GBK by default, so printing UTF-8 Chinese there comes out garbled
+rem      (see the header comment in tools\FairGuardReport.c)
+"%TC%\bin\gcc.exe" -O2 -Wall ^
+    -finput-charset=UTF-8 -fexec-charset=UTF-8 -fwide-exec-charset=UTF-16LE ^
+    -o "%BUILD%\FairGuardReport.exe" "%TOOLDIR%\FairGuardReport.c"
 if errorlevel 1 ( echo [ERROR] FairGuardReport failed to compile. & goto :fail )
 "%BUILD%\FairGuardReport.exe" --selftest | findstr /c:"failures: 0" >nul
 if errorlevel 1 ( echo [ERROR] FairGuardReport --selftest FAILED. & goto :fail )
