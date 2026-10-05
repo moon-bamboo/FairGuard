@@ -72,7 +72,7 @@
 ## 关键路径速查
 
 ```
-项目目录   D:\SoftWare\Develope\DshWorkPath\mo工具\对方玩家异常操作检测\FairGuard\
+项目目录   D:\SoftWare\Develope\DshWorkPath\mo工具\对方玩家异常操作检测\
 工具链     D:\SoftWare\Develope\DshWorkPath\mo工具\ToolsChain\w64devkit
 纯原版     E:\RA2\ModManager-v1.1.0.5\Mods\Yuri\Files\        (gamemd 4,813,072 字节)
 MO         E:\RA2\Mental Omega\                                (gamemd 4,816,864 字节)

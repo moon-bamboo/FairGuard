@@ -32,17 +32,17 @@ echo.
 
 rem ---------------------------------------------------------------
 rem  [1/5] Locate the toolchain.
-rem  NOTE: %~dp0 already ends with a backslash, so "%~dp0..\..\.."
-rem  climbs from src\ up to the workspace root. Getting this wrong is
+rem  NOTE: %~dp0 already ends with a backslash, so "%~dp0..\.."
+rem  climbs from src\ up to the WORKSPACE root (the parent of this repo).
 rem  exactly what made the old version of this script never work.
 rem ---------------------------------------------------------------
-set "TC=%~dp0..\..\..\ToolsChain\w64devkit"
-if not exist "%TC%\bin\g++.exe" set "TC=%~dp0..\..\..\NoCopyProtect\tools\w64devkit"
+set "TC=%~dp0..\..\ToolsChain\w64devkit"
+if not exist "%TC%\bin\g++.exe" set "TC=%~dp0..\..\NoCopyProtect\tools\w64devkit"
 if not exist "%TC%\bin\g++.exe" set "TC=%~dp0toolchain"
 if not exist "%TC%\bin\g++.exe" (
     echo [ERROR] toolchain not found. Tried:
-    echo         %~dp0..\..\..\ToolsChain\w64devkit
-    echo         %~dp0..\..\..\NoCopyProtect\tools\w64devkit
+    echo         %~dp0..\..\ToolsChain\w64devkit
+    echo         %~dp0..\..\NoCopyProtect\tools\w64devkit
     echo         %~dp0toolchain
     goto :fail
 )

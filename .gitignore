@@ -1,0 +1,38 @@
+# ============================================================
+#  FairGuard —— 仓库忽略规则
+#
+#  设计原则：**仓库里只放源码、文档和必需资源**。
+#  编译产物不进 git —— 玩家从 GitHub Release 下载打包好的 zip，
+#  开发者自己跑 src/build.bat 编译。好处：
+#    · 每次重新编译不会产生一堆二进制 diff（本项目产物逐次哈希都不同）
+#    · 仓库不会随版本推进无限膨胀
+# ============================================================
+
+# ---- 编译产物（由 src/build.bat 生成）----
+# 注意：FairGuard.dll.inj 是**必需资源**（扩展名 .inj），不会被这里排除
+*.dll
+*.exe
+*.o
+
+# ---- 构建中间目录 ----
+_build/
+fairguard_build/
+
+# ---- 发布打包产物（由 tools\make_release.bat 生成）----
+*.zip
+
+# ---- FairGuardReport 运行时生成的东西 ----
+*.report.html
+MsgLog/
+
+# ---- 编辑器 / IDE ----
+.vscode/
+.idea/
+*.swp
+*~
+*.bak
+
+# ---- Windows 系统的杂物 ----
+Thumbs.db
+desktop.ini
+ehthumbs.db
