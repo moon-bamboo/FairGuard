@@ -102,7 +102,7 @@ static int __attribute__((thiscall, noinline)) FakeAddMessage(
     return 0;
 }
 
-/* 用与 EventProbe.c 完全相同的方式发起调用。
+/* 用与 FairGuard.c 完全相同的方式发起调用。
  *
  * 函数指针经 volatile 全局变量取出，避免 GCC 把"已知目标"的间接调用
  * 去虚拟化/内联掉（真实插件里目标是一个引擎地址常量，同样不可内联）。 */

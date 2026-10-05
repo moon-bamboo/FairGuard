@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
 rem ================================================================
-rem  EventProbe.dll build script   (32-bit mingw, -nostdlib)
+rem  FairGuard.dll build script   (32-bit mingw, -nostdlib)
 rem
 rem  ****************************************************************
 rem  THIS FILE MUST STAY PURE ASCII -- do NOT add Chinese comments.
@@ -12,7 +12,7 @@ rem  cmd.exe parses .bat files using the local ANSI code page (GBK on
 rem  Chinese Windows). A UTF-8 file with Chinese comments gets mis-parsed:
 rem  the bytes of a comment line can swallow the *next* command, and you
 rem  end up with errors like
-rem      '"D:\...\EventProbe\src\src"' is not recognized as an internal
+rem      '"D:\...\FairGuard\src\src"' is not recognized as an internal
 rem      or external command
 rem  on a line that looks perfectly fine when you open the file.
 rem  (Cost us a real debugging round -- see the dev docs, item 17.)
@@ -20,13 +20,13 @@ rem  ****************************************************************
 rem
 rem  Layout this script assumes:
 rem     <workspace>\ToolsChain\w64devkit                        <- toolchain
-rem     <workspace>\<project>\EventProbe\src\build.bat            <- this file
+rem     <workspace>\<project>\FairGuard\src\build.bat            <- this file
 rem
 rem  Set EP_NOPAUSE=1 to build without the final "pause" (for scripts).
 rem ================================================================
 
 echo ================================================
-echo  EventProbe.dll build  (32-bit, -nostdlib)
+echo  FairGuard.dll build  (32-bit, -nostdlib)
 echo ================================================
 echo.
 
@@ -85,7 +85,7 @@ if "%EP_INPLACE%"=="1" (
     if not exist "!BUILD!" mkdir "!BUILD!"
 ) else (
     echo [2/5] staging to %%TEMP%% for build - pure ASCII path
-    set "WORK=%TEMP%\eventprobe_build"
+    set "WORK=%TEMP%\fairguard_build"
     if exist "!WORK!" rmdir /s /q "!WORK!"
     mkdir "!WORK!" 2>nul
     echo       copying toolchain - about 250MB, please wait...
@@ -116,7 +116,7 @@ set "PATH=%TC%\bin;%PATH%"
 "%TC%\bin\g++.exe" -Wall -O2 -shared -fno-exceptions -fno-rtti ^
     -finput-charset=UTF-8 -fwide-exec-charset=UTF-16LE ^
     -I"%SRC%" ^
-    -o "%BUILD%\EventProbe.dll" "%SRC%\EventProbe.c" ^
+    -o "%BUILD%\FairGuard.dll" "%SRC%\FairGuard.c" ^
     -nostdlib -lkernel32 -lgcc ^
     -Wl,--enable-stdcall-fixup -Wl,--no-insert-timestamp -Wl,--entry,_DllMain@12
 if errorlevel 1 (
@@ -147,7 +147,7 @@ if errorlevel 1 ( echo [ERROR] test_abi FAILED. & goto :fail )
 echo       - test_load (DLL load / exports / Syringe handshake)
 "%TC%\bin\gcc.exe" -O2 -o "%BUILD%\test_load.exe" "%~dp0..\test\test_load.c" -lkernel32
 if errorlevel 1 ( echo [ERROR] test_load failed to compile. & goto :fail )
-copy /y "%BUILD%\EventProbe.dll" "%BUILD%\EventProbe.dll" >nul
+copy /y "%BUILD%\FairGuard.dll" "%BUILD%\FairGuard.dll" >nul
 pushd "%BUILD%"
 test_load.exe | findstr /c:"failures: 0" >nul
 set "LOADRC=!errorlevel!"
@@ -159,9 +159,9 @@ rem  [5/5] Collect the artifact.
 rem  Target is the PROJECT ROOT (one level up from src\), not src\ itself.
 rem ---------------------------------------------------------------
 echo [5/5] collecting output...
-copy /y "%BUILD%\EventProbe.dll" "%~dp0..\EventProbe.dll" >nul
+copy /y "%BUILD%\FairGuard.dll" "%~dp0..\FairGuard.dll" >nul
 if errorlevel 1 (
-    echo [ERROR] could not copy EventProbe.dll back.
+    echo [ERROR] could not copy FairGuard.dll back.
     goto :fail
 )
 
@@ -169,14 +169,14 @@ echo.
 echo ================================================
 echo  BUILD OK
 echo ================================================
-for %%F in ("%~dp0..\EventProbe.dll") do echo    %%~nxF  %%~zF bytes
+for %%F in ("%~dp0..\FairGuard.dll") do echo    %%~nxF  %%~zF bytes
 echo.
 echo Deploy to the game folder (where gamemd.exe lives):
-echo     EventProbe.dll          ^<- the plugin
-echo     EventProbe.dll.inj      ^<- hook declaration (name must match exactly)
-echo     EventProbe.ini          ^<- config, optional
+echo     FairGuard.dll          ^<- the plugin
+echo     FairGuard.dll.inj      ^<- hook declaration (name must match exactly)
+echo     FairGuard.ini          ^<- config, optional
 echo.
-echo Log: ^<game folder^>\MsgLog\EventProbe_YYYY-MM-DD_HH-MM-SS.log
+echo Log: ^<game folder^>\MsgLog\FairGuard_YYYY-MM-DD_HH-MM-SS.log
 echo.
 if not "%EP_NOPAUSE%"=="" goto :eof
 pause

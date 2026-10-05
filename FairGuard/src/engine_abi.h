@@ -45,8 +45,8 @@
  *    改动这里必须重跑那个测试 —— 约定错了游戏会当场崩。
  */
 
-#ifndef EVENTPROBE_ENGINE_ABI_H
-#define EVENTPROBE_ENGINE_ABI_H
+#ifndef FAIRGUARD_ENGINE_ABI_H
+#define FAIRGUARD_ENGINE_ABI_H
 
 /* MessageListClass::AddMessage */
 #define ADDR_ADD_MESSAGE          0x005D3BA0u
@@ -66,4 +66,4 @@ typedef void* (__fastcall *AddMessageFn)(
     const wchar_t* name, int id, const wchar_t* message,
     int colorSchemeIdx, int style, int timeout, int silent);
 
-#endif /* EVENTPROBE_ENGINE_ABI_H */
+#endif /* FAIRGUARD_ENGINE_ABI_H */

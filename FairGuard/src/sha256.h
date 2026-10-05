@@ -26,8 +26,8 @@
  *   - 只用 unsigned / unsigned long long（mingw 下前者 32 位、后者 64 位）
  */
 
-#ifndef EVENTPROBE_SHA256_H
-#define EVENTPROBE_SHA256_H
+#ifndef FAIRGUARD_SHA256_H
+#define FAIRGUARD_SHA256_H
 
 typedef struct {
     unsigned           state[8];
@@ -166,4 +166,4 @@ static inline void Sha256(const void* data, unsigned len, unsigned char* out)
     Sha256_Final(&c, out);
 }
 
-#endif /* EVENTPROBE_SHA256_H */
+#endif /* FAIRGUARD_SHA256_H */

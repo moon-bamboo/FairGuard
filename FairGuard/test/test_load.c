@@ -1,5 +1,5 @@
 /*
- * test_load.c - EventProbe.dll 加载自检（32 位）
+ * test_load.c - FairGuard.dll 加载自检（32 位）
  *
  * 验证:
  *   1) DLL 能被 LoadLibrary 加载（依赖是否齐全）
@@ -43,9 +43,9 @@ int main(void)
     char msg[512];
     SyringeHandshakeInfo info;
 
-    printf("== EventProbe.dll load test ==\n\n");
+    printf("== FairGuard.dll load test ==\n\n");
 
-    dll = LoadLibraryA("EventProbe.dll");
+    dll = LoadLibraryA("FairGuard.dll");
     if (!dll)
     {
         printf("[FAIL] LoadLibrary failed, GetLastError = %lu\n", GetLastError());
@@ -53,12 +53,12 @@ int main(void)
     }
     printf("[PASS] LoadLibrary OK, base = %p\n", (void*)dll);
 
-    h1 = GetProcAddress(dll, "EventProbe_ExecuteEventsHook");
-    h2 = GetProcAddress(dll, "EventProbe_FrameHook");
+    h1 = GetProcAddress(dll, "FairGuard_ExecuteEventsHook");
+    h2 = GetProcAddress(dll, "FairGuard_FrameHook");
     hs = GetProcAddress(dll, "SyringeHandshake");
 
-    ok("EventProbe_ExecuteEventsHook (0x64C38D)", h1 != NULL, NULL);
-    ok("EventProbe_FrameHook        (0x55D360)", h2 != NULL, NULL);
+    ok("FairGuard_ExecuteEventsHook (0x64C38D)", h1 != NULL, NULL);
+    ok("FairGuard_FrameHook        (0x55D360)", h2 != NULL, NULL);
     ok("SyringeHandshake",                        hs != NULL, NULL);
 
     if (hs)

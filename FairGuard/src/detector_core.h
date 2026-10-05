@@ -74,24 +74,28 @@
 #define DET_MAX_UNIQ        64
 
 /* Mission 枚举里我们关心的两个取值 */
-#define DET_MISSION_MOVE    2      /* Move  —— 自动装车"先走到载具附近"时用 */
-#define DET_MISSION_ENTER   7      /* Enter —— 手动装车用它 */
+#define DET_MISSION_MOVE    2      /* Move  —— ★ 不能用它判定（见文件头说明） */
+#define DET_MISSION_ENTER   7      /* Enter —— ★ 判据只认它（默认 MissionFilter=7） */
 
 /* ------------------------------------------------------------------
  * 一个玩家在【一帧内】的 MegaMission 统计
  * ------------------------------------------------------------------ */
 typedef struct {
-    int      nEvt;        /* 有效条数（Whom、Destination 都非 0） */
+    int      nEvt;        /* 通过 Mission 过滤、且字段有效的条数（判据用这个） */
     int      nInvalid;    /* 字段未算出来（含 0）的条数 —— 本机事件就是这样 */
+    int      nFiltered;   /* 被 MissionFilter 挡掉的条数（日志里可核对） */
     int      nWhom;       /* 去重后的 Whom 个数   = "几个单位" */
     int      nDest;       /* 去重后的 Destination 个数 = "几辆不同载具" */
     unsigned whom[DET_MAX_UNIQ];
     unsigned dest[DET_MAX_UNIQ];
 
-    int      nMove;       /* Mission == 2 的条数（仅用于日志展示） */
+    /* Mission 分布（全部事件，不受 MissionFilter 影响，仅用于日志） */
+    int      nMove;       /* Mission == 2 的条数 */
     int      nEnter;      /* Mission == 7 的条数 */
     int      nOtherMission;
-    int      nOverflow;   /* 去重集合溢出次数（>0 说明数据异常） */
+
+    int      nDup;        /* 去重时遇到"已有值"的次数 —— 正常现象，不是错误 */
+    int      nOverflow;   /* 去重集合真的装不下了（>0 才是异常） */
 
     /* 命中时保留的事件字节（只对前 DET_HEAD_HASH 字节做哈希，见文件头说明） */
     unsigned char heads[DET_MAX_UNIQ * DET_HEAD_SAVE];
@@ -116,35 +120,61 @@ static inline void DetStat_Reset(DetStat* s)
     int i;
     s->nEvt = 0;
     s->nInvalid = 0;
+    s->nFiltered = 0;
     s->nWhom = 0;
     s->nDest = 0;
     s->nMove = 0;
     s->nEnter = 0;
     s->nOtherMission = 0;
+    s->nDup = 0;
     s->nOverflow = 0;
     s->nHeads = 0;
     for (i = 0; i < DET_MAX_UNIQ; i++) { s->whom[i] = 0; s->dest[i] = 0; }
 }
 
-/* 把一个值并进去重集合；返回 1 = 新增，0 = 已存在或溢出 */
+/* 把一个值并进去重集合。
+ * 返回  1 = 新增
+ *       0 = 集合里已有这个值（Dup，完全正常 —— 多个单位进同一辆车就是这样）
+ *      -1 = 集合满了（Overflow，才是真异常）
+ *
+ * ⚠️ 1.1 把"已存在"和"溢出"混在一起返回 0，日志里于是出现
+ *    `OVERFLOW=10` 这种吓人的数字，其实只是在数重复值。
+ *    1.2 分开返回，日志里 `dup=` 与 `ovf=` 各归各位。 */
 static inline int DetAddUnique(unsigned* arr, int* n, int cap, unsigned v)
 {
     int i;
     for (i = 0; i < *n; i++)
         if (arr[i] == v) return 0;
     if (*n < cap) { arr[*n] = v; (*n)++; return 1; }
-    return 0;
+    return -1;
+}
+
+/*
+ * MissionFilter 判定：mask 为 0 表示"不过滤"；否则要求 bit[mission] 为 1。
+ * （Mission 取值范围 0..47，这里只覆盖低 32 位；超出的一律不放行 ——
+ *   宁可少报，也不要拿语义不明的 Mission 去下结论。）
+ */
+static inline int DetMissionAllowed(unsigned char mission, unsigned mask)
+{
+    if (mask == 0) return 1;
+    if (mission >= 32) return 0;
+    return ((mask >> mission) & 1u) ? 1 : 0;
 }
 
 /*
  * 吃进一条【原始事件字节】（至少 DET_OFF_DEST + 4 = 23 字节可读）。
  * 调用方负责筛掉：Type != 0x04、已执行、Frame != 当前帧。
+ *
+ * missionMask 见 DetMissionAllowed：只有通过过滤的事件才计入 nEvt /
+ * nWhom / nDest（判据看的那三个数）；Mission 分布始终统计全部，
+ * 这样日志里能看出"这一帧有 20 条 Move 被挡掉了"。
  */
-static inline void DetStat_Feed(DetStat* s, const unsigned char* ev)
+static inline void DetStat_Feed(DetStat* s, const unsigned char* ev, unsigned missionMask)
 {
     unsigned      whom = *(const unsigned*)(ev + DET_OFF_WHOM);
     unsigned      dest = *(const unsigned*)(ev + DET_OFF_DEST);
     unsigned char mission = ev[DET_OFF_MISSION];
+    int           r;
 
     /* 头部样本（哈希链 + 命中回放用）。份数满了就不再收，不影响判据。 */
     if (s->nHeads < DET_MAX_UNIQ)
@@ -162,10 +192,16 @@ static inline void DetStat_Feed(DetStat* s, const unsigned char* ev)
     /* ★ 字段还没算出来（本机刚生成的事件）—— 剔除，不参与判据 */
     if (!whom || !dest) { s->nInvalid++; return; }
 
+    /* ★ Mission 过滤：默认只放行 Enter(7)，把 Move 等语义不同的命令挡在外面 */
+    if (!DetMissionAllowed(mission, missionMask)) { s->nFiltered++; return; }
+
     s->nEvt++;
 
-    if (!DetAddUnique(s->whom, &s->nWhom, DET_MAX_UNIQ, whom)) s->nOverflow++;
-    if (!DetAddUnique(s->dest, &s->nDest, DET_MAX_UNIQ, dest)) s->nOverflow++;
+    r = DetAddUnique(s->whom, &s->nWhom, DET_MAX_UNIQ, whom);
+    if (r == 0) s->nDup++; else if (r < 0) s->nOverflow++;
+
+    r = DetAddUnique(s->dest, &s->nDest, DET_MAX_UNIQ, dest);
+    if (r == 0) s->nDup++; else if (r < 0) s->nOverflow++;
 }
 
 /*
@@ -176,11 +212,17 @@ static inline void DetStat_Feed(DetStat* s, const unsigned char* ev)
  *   nDest >= MinDest          —— 真的打给了多辆【不同】载具
  *   nDest/nWhom >= Ratio      —— 接近"一单位一载具"（默认允许打对折）
  *
- * 反例验算（默认 MinEvents=5, MinDest=5, Ratio=50）：
- *   手动 10 单位进 1 辆载具 : nWhom=10 nDest=1  -> nDest<5        不命中 ✓
- *   手动 PvP 技巧两辆       : nWhom=11 nDest=2  -> nDest<5        不命中 ✓
- *   框选 10 单位点地面移动   : nWhom=10 nDest=1  -> nDest<5        不命中 ✓
- *   自动装车 10 单位 10 辆   : nWhom=10 nDest=10 -> 10>=5 且 2*10>=10 命中 ✓
+ * 反例验算（默认 MinEvents=5, MinDest=3, RatioPercent=0，且只判 Enter）：
+ *   手动 10 单位进 1 辆载具       : nWhom=10 nDest=1  -> nDest<3   不命中 ✓
+ *   手动 PvP 技巧两辆             : nWhom=11 nDest=2  -> nDest<3   不命中 ✓
+ *   框选 20 单位路径点移动         : 全被 MissionFilter 挡掉，nEvt=0  不命中 ✓
+ *   自动装车 20 单位 3 辆         : nWhom=20 nDest=3  -> 3>=3       命中 ✓
+ *   自动装车 10 单位 10 辆        : nWhom=10 nDest=10 -> 10>=3      命中 ✓
+ *
+ * ⚠️ RatioPercent 默认改成 0（不检查）。1.1 用 50% 时，"20 单位进 3 辆载具"
+ *    （3/20 = 15%）会被比例条件挡掉，而用户实测认为这该报。
+ *    只判 Enter 之后比例条件意义不大（人手无法同帧点多个不同载具），
+ *    想开启就设 RatioPercent（50 = 至少要有"半个单位数"那么多的不同载具）。
  */
 static inline int DetStat_Judge(const DetStat* s, const DetRule* r)
 {
@@ -188,8 +230,11 @@ static inline int DetStat_Judge(const DetStat* s, const DetRule* r)
     if (s->nDest < r->MinDest)  return 0;
     if (s->nWhom <= 0)          return 0;
 
-    /* nDest/nWhom >= RatioPercent/100  <=>  nDest*100 >= nWhom*RatioPercent */
-    if ((long long)s->nDest * 100 < (long long)s->nWhom * r->RatioPercent) return 0;
+    if (r->RatioPercent > 0)
+    {
+        /* nDest/nWhom >= RatioPercent/100  <=>  nDest*100 >= nWhom*RatioPercent */
+        if ((long long)s->nDest * 100 < (long long)s->nWhom * r->RatioPercent) return 0;
+    }
 
     return 1;
 }

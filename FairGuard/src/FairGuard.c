@@ -1,5 +1,5 @@
 /*
- * EventProbe.c - 《尤里的复仇》事件队列探针 + 自动装车检测器
+ * FairGuard.c - 《尤里的复仇》事件队列探针 + 自动装车检测器
  *
  * ============================ 用途 ============================
  *
@@ -7,7 +7,7 @@
  *
  *   [探针 Probe]     按【玩家】统计"每个逻辑帧下达了多少条命令"，写日志。
  *                    用于回答"地址对不对 / 正常人的命令量基线是多少"。
- *                    默认开启，可以用 EventProbe.ini 关掉。
+ *                    默认开启，可以用 FairGuard.ini 关掉。
  *
  *   [检测器 Detector] 实时判据：同一帧内某玩家的一批 MegaMission 事件里，
  *                    若「Destination 的不同取值个数」≈「Whom 的不同取值个数」
@@ -43,8 +43,8 @@
  *
  *    build.bat   (32 位 mingw + -nostdlib，无 CRT)
  *
- * 产物: EventProbe.dll + EventProbe.dll.inj  ->  放进游戏根目录
- * 日志: <游戏目录>\MsgLog\EventProbe_YYYY-MM-DD_HH-MM-SS.log
+ * 产物: FairGuard.dll + FairGuard.dll.inj  ->  放进游戏根目录
+ * 日志: <游戏目录>\MsgLog\FairGuard_YYYY-MM-DD_HH-MM-SS.log
  *
  * 单元测试:
  *    test/test_detector.c  判据算法（用真实样本字节，不需要游戏）
@@ -56,7 +56,7 @@
 #include "detector_core.h"   /* 判据核心：纯算法，可单测 */
 #include "sha256.h"          /* 哈希链用的 SHA-256 */
 
-#define PROBE_VERSION   "1.1"
+#define GUARD_VERSION   "1.2"
 
 /* ==================================================================
  * 1. 地址常量
@@ -143,21 +143,23 @@ typedef struct {
     int LogUtf8;       /* LogUtf8=0       1 = 日志用 UTF-8 带 BOM */
 } ProbeConfig;
 
-/* 检测器配置（EventProbe.ini 的 [Detector] 段） */
+/* 检测器配置（FairGuard.ini 的 [Detector] 段） */
 typedef struct {
-    int  Enable;          /* 总开关 */
-    int  MinEvents;       /* 单帧最少有效 MegaMission 条数 */
-    int  MinDest;         /* 单帧最少 Destination 不同取值数 */
-    int  RatioPercent;    /* nDest 至少要达到 nWhom 的百分之几 */
-    int  ShowAlert;       /* 是否在屏幕上提示 */
-    int  AlertSeconds;    /* 提示停留秒数 */
-    int  LogRaw;          /* 命中时是否把该批事件逐条写原始 hex */
-    int  WindowFrames;    /* 滑动窗口长度（帧） */
-    int  WindowHits;      /* 窗口内命中多少次就升级告警 */
-    int  HashChain;       /* 是否启用哈希链 */
-    int  SummaryEvery;    /* 每多少帧输出一次汇总（0 = 只在对局结束时输出） */
-    int  IgnoreHouseMask; /* 位掩码：要忽略的房号（AI 常在这里） */
-    int  IgnoreList;      /* IgnoreHouses= 里是否填过东西（填了就覆盖掩码） */
+    int      Enable;          /* 总开关 */
+    int      MinEvents;       /* 单帧最少有效 MegaMission 条数 */
+    int      MinDest;         /* 单帧最少 Destination 不同取值数 */
+    int      RatioPercent;    /* nDest 至少要达到 nWhom 的百分之几（0 = 不检查） */
+    unsigned MissionMask;     /* ★ 只对哪些 Mission 判定（0 = 不过滤；默认 bit7 = 仅 Enter） */
+    int      ShowAlert;       /* 是否在屏幕上提示 */
+    int      AlertSeconds;    /* 提示停留秒数 */
+    int      LogRaw;          /* 命中时是否把该批事件逐条写原始 hex */
+    int      TraceAll;        /* 诊断：把"规模达标但未命中"的帧也记一行（分析漏报用） */
+    int      WindowFrames;    /* 滑动窗口长度（帧） */
+    int      WindowHits;      /* 窗口内命中多少次就升级告警 */
+    int      HashChain;       /* 是否启用哈希链 */
+    int      SummaryEvery;    /* 每多少帧输出一次汇总（0 = 只在对局结束时输出） */
+    int      IgnoreHouseMask; /* 位掩码：要忽略的房号（AI 常在这里） */
+    int      IgnoreList;      /* IgnoreHouses= 里是否填过东西（填了就覆盖掩码） */
 } DetConfig;
 
 static ProbeConfig g_Cfg;
@@ -263,7 +265,7 @@ static wchar_t* AppWideNum(wchar_t* d, int v, wchar_t* end)
  * 5. 日志
  * ================================================================== */
 
-/* 日志路径: <游戏目录>\MsgLog\EventProbe_<时间>.log
+/* 日志路径: <游戏目录>\MsgLog\FairGuard_<时间>.log
  * 游戏目录 = gamemd.exe 所在目录（取本 DLL 的路径再往上一层）。 */
 static void BuildPaths(void)
 {
@@ -293,7 +295,7 @@ static void BuildPaths(void)
         }
     }
 
-    /* 目录 + "\MsgLog\EventProbe_YYYY-MM-DD_HH-MM-SS.log"
+    /* 目录 + "\MsgLog\FairGuard_YYYY-MM-DD_HH-MM-SS.log"
      * 目录不存在时 CreateFileA 会失败 —— 所以先用 CreateDirectoryA 建 MsgLog。 */
     {
         char sub[MAX_PATH];
@@ -308,7 +310,7 @@ static void BuildPaths(void)
     GetLocalTime(&st);
     d = g_LogPath;
     d = AppStr(d, g_Dir, end);
-    d = AppStr(d, "\\MsgLog\\EventProbe_", end);
+    d = AppStr(d, "\\MsgLog\\FairGuard_", end);
     d += UtoA(st.wYear, d);          d = AppCh(d, '-', end);
     b[0] = (char)('0' + st.wMonth / 10); b[1] = (char)('0' + st.wMonth % 10); b[2] = 0;
     d = AppStr(d, b, end);           d = AppCh(d, '-', end);
@@ -329,7 +331,7 @@ static void BuildPaths(void)
  * 为什么需要判断：Syringe 在【自己进程】里会先调用一次各 DLL 的
  * SyringeHandshake（就是日志里 "Calling xxx.dll ... Answers ..." 那几行），
  * 而握手会走到 EnsureInit 里建日志文件 —— 于是【每次启动都会多出一个
- * 只有启动头的空日志】（实测：一局生成两个 EventProbe_*.log）。
+ * 只有启动头的空日志】（实测：一局生成两个 FairGuard_*.log）。
  * 那个日志是 Syringe 进程留下的，不是游戏产生的，留着只会让人困惑。
  *
  * 所以：只有宿主是 gamemd.exe 时才真正建日志；其他进程静默。 */
@@ -417,15 +419,15 @@ static void LoadConfig(void)
     char* end = ini + sizeof(ini) - 32;
 
     d = AppStr(d, g_Dir, end);
-    d = AppStr(d, "\\EventProbe.ini", end);
+    d = AppStr(d, "\\FairGuard.ini", end);
     *d = 0;
 
-    g_Cfg.Enable        = GetPrivateProfileIntA("EventProbe", "Enable",        1,  ini);
-    g_Cfg.DumpRaw       = GetPrivateProfileIntA("EventProbe", "DumpRaw",       0,  ini);
-    g_Cfg.DumpBytes     = GetPrivateProfileIntA("EventProbe", "DumpBytes",     32, ini);
-    g_Cfg.BurstOps      = GetPrivateProfileIntA("EventProbe", "BurstOps",      5,  ini);
-    g_Cfg.LogEveryFrame = GetPrivateProfileIntA("EventProbe", "LogEveryFrame", 0,  ini);
-    g_Cfg.LogUtf8       = GetPrivateProfileIntA("EventProbe", "LogUtf8",       0,  ini);
+    g_Cfg.Enable        = GetPrivateProfileIntA("Probe", "Enable",        1,  ini);
+    g_Cfg.DumpRaw       = GetPrivateProfileIntA("Probe", "DumpRaw",       0,  ini);
+    g_Cfg.DumpBytes     = GetPrivateProfileIntA("Probe", "DumpBytes",     32, ini);
+    g_Cfg.BurstOps      = GetPrivateProfileIntA("Probe", "BurstOps",      5,  ini);
+    g_Cfg.LogEveryFrame = GetPrivateProfileIntA("Probe", "LogEveryFrame", 0,  ini);
+    g_Cfg.LogUtf8       = GetPrivateProfileIntA("Probe", "LogUtf8",       0,  ini);
 
     g_Cfg.Enable        = g_Cfg.Enable        ? 1 : 0;
     g_Cfg.DumpRaw       = g_Cfg.DumpRaw       ? 1 : 0;
@@ -440,11 +442,12 @@ static void LoadConfig(void)
 
     g_DetCfg.Enable          = GetPrivateProfileIntA("Detector", "Enable",          1,  ini);
     g_DetCfg.MinEvents       = GetPrivateProfileIntA("Detector", "MinEvents",       5,  ini);
-    g_DetCfg.MinDest         = GetPrivateProfileIntA("Detector", "MinDest",         5,  ini);
-    g_DetCfg.RatioPercent    = GetPrivateProfileIntA("Detector", "RatioPercent",    50, ini);
+    g_DetCfg.MinDest         = GetPrivateProfileIntA("Detector", "MinDest",         3,  ini);
+    g_DetCfg.RatioPercent    = GetPrivateProfileIntA("Detector", "RatioPercent",    0,  ini);
     g_DetCfg.ShowAlert       = GetPrivateProfileIntA("Detector", "ShowAlert",       1,  ini);
     g_DetCfg.AlertSeconds    = GetPrivateProfileIntA("Detector", "AlertSeconds",    10, ini);
     g_DetCfg.LogRaw          = GetPrivateProfileIntA("Detector", "LogRaw",          0,  ini);
+    g_DetCfg.TraceAll        = GetPrivateProfileIntA("Detector", "TraceAll",        0,  ini);
     g_DetCfg.WindowFrames    = GetPrivateProfileIntA("Detector", "WindowFrames",    600, ini);
     g_DetCfg.WindowHits      = GetPrivateProfileIntA("Detector", "WindowHits",      2,  ini);
     g_DetCfg.HashChain       = GetPrivateProfileIntA("Detector", "HashChain",       1,  ini);
@@ -453,6 +456,7 @@ static void LoadConfig(void)
     g_DetCfg.Enable       = g_DetCfg.Enable       ? 1 : 0;
     g_DetCfg.ShowAlert    = g_DetCfg.ShowAlert    ? 1 : 0;
     g_DetCfg.LogRaw       = g_DetCfg.LogRaw       ? 1 : 0;
+    g_DetCfg.TraceAll     = g_DetCfg.TraceAll     ? 1 : 0;
     g_DetCfg.HashChain    = g_DetCfg.HashChain    ? 1 : 0;
 
     if (g_DetCfg.MinEvents < 1)         g_DetCfg.MinEvents = 1;
@@ -468,6 +472,37 @@ static void LoadConfig(void)
     if (g_DetCfg.WindowHits < 1)        g_DetCfg.WindowHits = 1;
     if (g_DetCfg.WindowHits > 1000)     g_DetCfg.WindowHits = 1000;
     if (g_DetCfg.SummaryEvery < 0)      g_DetCfg.SummaryEvery = 0;
+
+    /* MissionFilter：逗号分隔的 Mission 编号列表，例如 "7" 或 "2,7"。
+     * 0 或留空 = 不过滤（1.1 的旧行为）。
+     *
+     * ★ 默认 "7"（Enter）：实测证明只有"目标是具体对象"的 Mission，
+     *   它的 Destination 才能反映"几辆不同载具"。Move(2) 在路径点模式下
+     *   会为每个单位展开各自的目标格，Destination 天然分散 —— 用它判定会误报。 */
+    {
+        char list[128];
+        unsigned mask = 0;
+        int  i = 0, any = 0;
+        list[0] = 0;
+        GetPrivateProfileStringA("Detector", "MissionFilter", "7", list, sizeof(list), ini);
+        while (list[i])
+        {
+            int v = 0, got = 0;
+            while (list[i] >= '0' && list[i] <= '9')
+            {
+                if (v < 1000) v = v * 10 + (list[i] - '0');
+                i++; got = 1;
+            }
+            if (got)
+            {
+                if (v > 0 && v < 32) { mask |= (1u << v); any = 1; }
+                /* v == 0 表示"显式要求不过滤"，此时保持 mask 为 0 */
+                else if (v == 0) { any = 0; mask = 0; break; }
+            }
+            else i++;
+        }
+        g_DetCfg.MissionMask = any ? mask : 0;
+    }
 
     /* 要忽略的房号（逗号分隔，例如 "3,5"）—— 联机遭遇战里电脑玩家的房号
      * 也可能出现批量命令，若它造成噪音就在这里排除。留空 = 不排除任何房号。 */
@@ -799,6 +834,25 @@ static void ChainHex(char* d, int full)
 
 /* ---------------- 告警日志 ---------------- */
 
+/* 一行"这批命令长什么样"的公共描述 —— 命中行和 TraceAll 行共用，
+ * 免得两处的字段慢慢跑偏。 */
+static char* AppendStat(char* d, char* end, const DetStat* s, int ratio)
+{
+    d = AppStr(d, " units=", end);   d = AppNum(d, s->nWhom, end);
+    d = AppStr(d, " veh=", end);     d = AppNum(d, s->nDest, end);
+    d = AppStr(d, " MM=", end);      d = AppNum(d, s->nEvt, end);
+    d = AppStr(d, " (Move=", end);   d = AppNum(d, s->nMove, end);
+    d = AppStr(d, " Enter=", end);   d = AppNum(d, s->nEnter, end);
+    d = AppStr(d, " Other=", end);   d = AppNum(d, s->nOtherMission, end);
+    d = AppStr(d, ") ratio=", end);  d = AppNum(d, ratio, end);
+    d = AppStr(d, "%", end);
+    if (s->nFiltered) { d = AppStr(d, " filtered=", end); d = AppNum(d, s->nFiltered, end); }
+    if (s->nInvalid)  { d = AppStr(d, " invalid=", end);  d = AppNum(d, s->nInvalid, end); }
+    if (s->nDup)      { d = AppStr(d, " dup=", end);      d = AppNum(d, s->nDup, end); }
+    if (s->nOverflow) { d = AppStr(d, " OVF=", end);      d = AppNum(d, s->nOverflow, end); }
+    return d;
+}
+
 static void ReportDetectHit(unsigned frame, int house, const DetStat* s, int ratio, int repeated)
 {
     char  buf[640];
@@ -810,16 +864,7 @@ static void ReportDetectHit(unsigned frame, int house, const DetStat* s, int rat
     d = AppNum(d, (int)frame, end);
     d = AppStr(d, " h=", end);
     d = AppNum(d, house, end);
-    d = AppStr(d, " units=", end);   d = AppNum(d, s->nWhom, end);
-    d = AppStr(d, " veh=", end);     d = AppNum(d, s->nDest, end);
-    d = AppStr(d, " MM=", end);      d = AppNum(d, s->nEvt, end);
-    d = AppStr(d, " (Move=", end);   d = AppNum(d, s->nMove, end);
-    d = AppStr(d, " Enter=", end);   d = AppNum(d, s->nEnter, end);
-    d = AppStr(d, " Other=", end);   d = AppNum(d, s->nOtherMission, end);
-    d = AppStr(d, ") ratio=", end);  d = AppNum(d, ratio, end);
-    d = AppStr(d, "%", end);
-    if (s->nInvalid) { d = AppStr(d, " invalid=", end); d = AppNum(d, s->nInvalid, end); }
-    if (s->nOverflow) { d = AppStr(d, " OVERFLOW=", end); d = AppNum(d, s->nOverflow, end); }
+    d = AppendStat(d, end, s, ratio);
     if (repeated) d = AppStr(d, " [repeated]", end);
 
     if (g_DetCfg.HashChain)
@@ -828,6 +873,29 @@ static void ReportDetectHit(unsigned frame, int house, const DetStat* s, int rat
         d = AppStr(d, " chain=", end);
         d = AppStr(d, ch, end);
     }
+
+    *d = 0;
+    LogLine(buf);
+}
+
+/*
+ * TraceAll=1 时的诊断行：**规模达标但没有命中**的帧也记一行。
+ *
+ * 为什么需要它：漏报时最想知道的是"那一帧到底长什么样"——
+ * 是 Mission 不对（被 filtered 挡了）、还是 veh 不够多。
+ * 没有这行就只能靠猜。日志量不大（只有规模达标的帧才记）。
+ */
+static void ReportDetectTrace(unsigned frame, int house, const DetStat* s, int ratio)
+{
+    char  buf[640];
+    char* d = buf;
+    char* end = buf + sizeof(buf) - 16;
+
+    d = AppStr(d, "trace f=", end);
+    d = AppNum(d, (int)frame, end);
+    d = AppStr(d, " h=", end);
+    d = AppNum(d, house, end);
+    d = AppendStat(d, end, s, ratio);
 
     *d = 0;
     LogLine(buf);
@@ -902,7 +970,7 @@ static void ReportDetectSummary(int final)
     d = buf;
     if (final)
     {
-        d = AppStr(d, "[DETECT-SUMMARY] ver=" PROBE_VERSION " f=", end);
+        d = AppStr(d, "[DETECT-SUMMARY] ver=" GUARD_VERSION " f=", end);
         d = AppNum(d, (int)*(const unsigned*)ADDR_CURRENT_FRAME, end);
     }
     else
@@ -1008,15 +1076,30 @@ static void DetectCheckFrame(unsigned frame)
     for (h = 0; h < MAX_HOUSES; h++)
     {
         const DetStat* s = &g_Det[h];
+        int totalMm, ratio;
 
-        if (s->nEvt <= 0) continue;
+        /* 用"全部 MegaMission"判断这一帧这个房号有没有内容 ——
+         * 不能只看 nEvt：nEvt 只统计通过 MissionFilter 的，
+         * 一帧全是 Move 时 nEvt=0，但那一帧其实是"有内容、只是不该判"。 */
+        totalMm = s->nMove + s->nEnter + s->nOtherMission;
+        if (totalMm <= 0) continue;
+
         g_DetScans++;
 
         if (g_DetCfg.IgnoreHouseMask & (1 << h)) continue;
 
-        if (!DetStat_Judge(s, &g_Rule)) continue;
+        ratio = (s->nWhom > 0) ? (s->nDest * 100 / s->nWhom) : 0;
 
-        OnDetectHit(frame, h, s);
+        if (DetStat_Judge(s, &g_Rule))
+        {
+            OnDetectHit(frame, h, s);
+            continue;
+        }
+
+        /* 没命中。开了 TraceAll 就把"规模达标但没命中"的帧也记一行 ——
+         * 分析漏报（Mission 被过滤？veh 不够？）时这是唯一的第一手材料。 */
+        if (g_DetCfg.TraceAll && totalMm >= g_DetCfg.MinEvents)
+            ReportDetectTrace(frame, h, s, ratio);
     }
 
     /* 定期汇总（只在对局有进展时输出，避免刷屏） */
@@ -1240,13 +1323,13 @@ static void ProbeFrame(void)
              *
              *   这里【不判 Enable】：收集本身开销极小，而且 BURST 告警行
              *   要用到 Mission 分布。检测器开关只决定"要不要判定/告警"。 */
-            if (t == 0x04) DetStat_Feed(&g_Det[h], e);
+            if (t == 0x04) DetStat_Feed(&g_Det[h], e, g_DetCfg.MissionMask);
         }
 
         if (g_Cfg.Enable && g_Cfg.DumpRaw) ReportRaw(cur, e);
     }
 
-    /* 下面这些【探针专用】的输出都由 [EventProbe] Enable 控制；
+    /* 下面这些【探针专用】的输出都由 [Probe] Enable 控制；
      * 检测器的判定与告警是独立的（由 [Detector] Enable 控制），
      * 所以即使探针关掉、只要检测器开着，取样和判据照样跑。 */
     if (g_Cfg.Enable && (nThis > 0 || g_Cfg.LogEveryFrame))
@@ -1352,7 +1435,7 @@ static void EnsureInit(void)
         char* end = buf + sizeof(buf) - 8;
         char  hx[16];
 
-        d = AppStr(d, "EventProbe " PROBE_VERSION " start", end);
+        d = AppStr(d, "FairGuard " GUARD_VERSION " start", end);
         *d = 0; LogLine(buf);
 
         d = buf;
@@ -1368,12 +1451,33 @@ static void EnsureInit(void)
         d = AppStr(d, " MinEvents=", end);            d = AppNum(d, g_DetCfg.MinEvents, end);
         d = AppStr(d, " MinDest=", end);              d = AppNum(d, g_DetCfg.MinDest, end);
         d = AppStr(d, " RatioPercent=", end);         d = AppNum(d, g_DetCfg.RatioPercent, end);
-        d = AppStr(d, " ShowAlert=", end);            d = AppNum(d, g_DetCfg.ShowAlert, end);
+        d = AppStr(d, " MissionFilter=", end);
+        if (g_DetCfg.MissionMask == 0)
+        {
+            d = AppStr(d, "0(all)", end);      /* 不过滤：1.1 的旧行为 */
+        }
+        else
+        {
+            int k, first = 1;
+            for (k = 0; k < 32; k++)
+            {
+                if (!((g_DetCfg.MissionMask >> k) & 1u)) continue;
+                if (!first) d = AppCh(d, ',', end);
+                d = AppNum(d, k, end);
+                first = 0;
+            }
+        }
+        d = AppStr(d, " TraceAll=", end);             d = AppNum(d, g_DetCfg.TraceAll, end);
+        *d = 0; LogLine(buf);
+
+        d = buf;
+        d = AppStr(d, "detector: ShowAlert=", end);   d = AppNum(d, g_DetCfg.ShowAlert, end);
         d = AppStr(d, " AlertSeconds=", end);         d = AppNum(d, g_DetCfg.AlertSeconds, end);
         d = AppStr(d, " WindowFrames=", end);         d = AppNum(d, g_DetCfg.WindowFrames, end);
         d = AppStr(d, " WindowHits=", end);           d = AppNum(d, g_DetCfg.WindowHits, end);
         d = AppStr(d, " HashChain=", end);            d = AppNum(d, g_DetCfg.HashChain, end);
         d = AppStr(d, " SummaryEvery=", end);         d = AppNum(d, g_DetCfg.SummaryEvery, end);
+        d = AppStr(d, " LogRaw=", end);               d = AppNum(d, g_DetCfg.LogRaw, end);
         *d = 0; LogLine(buf);
 
         if (g_DetCfg.IgnoreList)
@@ -1426,7 +1530,7 @@ static void EnsureInit(void)
  * ⚠️ 不要改回函数入口 0x64C380：那里要覆盖 10 字节，含 sub esp / push
  *    两条改栈指令，实测必崩（纯原版 + MO 都一样）。详见 开发文档/04 第 1 条。
  *    .inj 里声明的覆盖长度是 6 —— 正好是 `mov 0x8b41f8,%edi` 一条指令。 */
-extern "C" __declspec(dllexport) DWORD __cdecl EventProbe_ExecuteEventsHook(void* regs)
+extern "C" __declspec(dllexport) DWORD __cdecl FairGuard_ExecuteEventsHook(void* regs)
 {
     (void)regs;
     EnsureInit();
@@ -1470,7 +1574,7 @@ extern "C" __declspec(dllexport) DWORD __cdecl EventProbe_ExecuteEventsHook(void
  *
  * ★ 屏幕提示只在这里显示：命中是在 Execute_DoList 内部算出来的，
  *   那一刻引擎正在消费事件队列，不适合调 UI 函数。这里是帧入口，安全。 */
-extern "C" __declspec(dllexport) DWORD __cdecl EventProbe_FrameHook(void* regs)
+extern "C" __declspec(dllexport) DWORD __cdecl FairGuard_FrameHook(void* regs)
 {
     (void)regs;
     EnsureInit();
@@ -1509,7 +1613,7 @@ extern "C" __declspec(dllexport) HRESULT __cdecl SyringeHandshake(SyringeHandsha
 
     if (pInfo->Message && pInfo->cchMessage > 0)
     {
-        const char* msg = "EventProbe " PROBE_VERSION
+        const char* msg = "FairGuard " GUARD_VERSION
                           ": read-only event-queue probe + AutoLoad detector "
                           "(detection only, no game state touched).";
         int i = 0;

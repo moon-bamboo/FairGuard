@@ -1,5 +1,5 @@
 ; ============================================================
-;  EventProbe hook declaration (Syringe .inj)
+;  FairGuard hook declaration (Syringe .inj)
 ;
 ;  MUST BE PURE ASCII -- Syringe parses this file as ANSI text.
 ;  No Chinese, no BOM, no smart quotes. Keep comments in English.
@@ -22,7 +22,7 @@
 ;    3) Same timing: DoList is already populated at this point.
 ;
 ;  Byte-identical on both gamemd builds we checked (4813072 / 4816864 bytes).
-0x64C38D = EventProbe_ExecuteEventsHook, 6
+0x64C38D = FairGuard_ExecuteEventsHook, 6
 
 ; ---- Heartbeat / fallback sampling point ----
 ; Main loop per-logical-frame entry. Same address used by ChatBox / AutoKit /
@@ -33,4 +33,4 @@
 ;  no data. Its job is to prove the probe is alive ("hook: frame alive") and to
 ;  keep the probe usable (with an explicit "DoList empty" diagnostic) if the
 ;  main sampling point above ever has to be removed.
-0x55D360 = EventProbe_FrameHook, 5
+0x55D360 = FairGuard_FrameHook, 5
