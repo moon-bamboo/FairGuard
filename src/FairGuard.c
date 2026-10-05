@@ -153,6 +153,7 @@ typedef struct {
     unsigned MissionMask;     /* ★ 只对哪些 Mission 判定（0 = 不过滤；默认 bit7 = 仅 Enter） */
     int      ShowAlert;       /* 是否在屏幕上提示 */
     int      AlertSeconds;    /* 提示停留秒数 */
+    int      AlertThrottleFrames; /* ★ 同房号在这么多帧内只弹一次提示（0 = 不节流） */
     int      LogRaw;          /* 命中时是否把该批事件逐条写原始 hex */
     int      TraceAll;        /* 诊断：把"规模达标但未命中"的帧也记一行（分析漏报用） */
     int      WindowFrames;    /* 滑动窗口长度（帧） */
@@ -474,6 +475,15 @@ static void LoadConfig(void)
     if (g_DetCfg.WindowHits > 1000)     g_DetCfg.WindowHits = 1000;
     if (g_DetCfg.SummaryEvery < 0)      g_DetCfg.SummaryEvery = 0;
 
+    /* 屏幕提示节流：配置里写"秒"，内部换算成帧（实测约 60 帧/秒）。
+     * 0 = 不节流（每次命中都弹）。 */
+    {
+        int sec = GetPrivateProfileIntA("Detector", "AlertThrottleSeconds", 10, ini);
+        if (sec < 0)   sec = 0;
+        if (sec > 600) sec = 600;
+        g_DetCfg.AlertThrottleFrames = sec * 60;
+    }
+
     /* MissionFilter：逗号分隔的 Mission 编号列表，例如 "7" 或 "2,7"。
      * 0 或留空 = 不过滤（1.1 的旧行为）。
      *
@@ -773,6 +783,18 @@ typedef struct {
 
 static PendingAlert g_Alert;
 
+/*
+ * 屏幕提示的节流表：每个房号上一次"真的弹了提示"的帧号。
+ *
+ * 为什么需要（实测数据）：用户那一局里 f=14806~15316 连续命中 40 多次
+ * （运输车装卸循环，8 秒内），`g_Alert` 每帧被覆盖一次 ——
+ * 屏幕上的提示就会一直刷新、停不下来，看着像是坏了。
+ *
+ * 现在同一房号在 AlertThrottleSeconds 之内只弹一次；**日志照常逐条全记**，
+ * 所以不会丢证据，只是不刷屏。
+ */
+static unsigned g_LastAlertFrame[MAX_HOUSES];
+
 /* 屏幕提示：借用引擎的 AddMessage（调用约定与 typedef 见 engine_abi.h） */
 static void ShowScreenAlert(const wchar_t* text)
 {
@@ -1037,19 +1059,36 @@ static void OnDetectHit(unsigned frame, int house, const DetStat* s)
     if (repeated) ReportDetectRepeat(frame, house, st);
     if (g_DetCfg.LogRaw) ReportDetectRaw(frame, house, s);
 
-    /* 登记屏幕提示（真正的显示在帧钩子里做，理由见 PendingAlert 的注释） */
+    /* 登记屏幕提示（真正的显示在帧钩子里做，理由见 PendingAlert 的注释）。
+     *
+     * ★ 1.3 起加了节流：同一房号在 AlertThrottleFrames 之内只登记一次。
+     *   实测里"装卸循环"会在 8 秒内连续命中 40 多次，不节流的话
+     *   屏幕提示会一直刷新、看着像坏了。
+     *   **日志不受影响** —— 上面那几行照常逐条记，证据不丢。 */
     if (g_DetCfg.ShowAlert)
     {
-        g_Alert.pending    = 1;
-        g_Alert.level      = repeated ? 2 : 1;
-        g_Alert.house      = house;
-        g_Alert.frame      = frame;
-        g_Alert.nEvt       = s->nEvt;
-        g_Alert.nWhom      = s->nWhom;
-        g_Alert.nDest      = s->nDest;
-        g_Alert.nMove      = s->nMove;
-        g_Alert.nEnter     = s->nEnter;
-        g_Alert.windowHits = st->hitsInWindow;
+        int throttled = 0;
+
+        if (g_DetCfg.AlertThrottleFrames > 0 &&
+            g_LastAlertFrame[house] != 0 &&
+            (int)(frame - g_LastAlertFrame[house]) < g_DetCfg.AlertThrottleFrames)
+            throttled = 1;
+
+        if (!throttled)
+        {
+            g_LastAlertFrame[house] = frame;
+
+            g_Alert.pending    = 1;
+            g_Alert.level      = repeated ? 2 : 1;
+            g_Alert.house      = house;
+            g_Alert.frame      = frame;
+            g_Alert.nEvt       = s->nEvt;
+            g_Alert.nWhom      = s->nWhom;
+            g_Alert.nDest      = s->nDest;
+            g_Alert.nMove      = s->nMove;
+            g_Alert.nEnter     = s->nEnter;
+            g_Alert.windowHits = st->hitsInWindow;
+        }
     }
 }
 
@@ -1465,6 +1504,7 @@ static void EnsureInit(void)
         d = buf;
         d = AppStr(d, "detector: ShowAlert=", end);   d = AppNum(d, g_DetCfg.ShowAlert, end);
         d = AppStr(d, " AlertSeconds=", end);         d = AppNum(d, g_DetCfg.AlertSeconds, end);
+        d = AppStr(d, " AlertThrottleFrames=", end);  d = AppNum(d, g_DetCfg.AlertThrottleFrames, end);
         d = AppStr(d, " WindowFrames=", end);         d = AppNum(d, g_DetCfg.WindowFrames, end);
         d = AppStr(d, " WindowHits=", end);           d = AppNum(d, g_DetCfg.WindowHits, end);
         d = AppStr(d, " HashChain=", end);            d = AppNum(d, g_DetCfg.HashChain, end);
